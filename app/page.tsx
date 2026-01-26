@@ -17,10 +17,15 @@ export default function Home() {
 
   const handleSave = (e: FormEvent) => {
     e.preventDefault();
-    chrome.storage?.sync.set({ browserFlowBackendUrl: backendUrl }, () => {
-      setStatus("Saved backend URL for the extension.");
+    if (typeof window !== "undefined" && (window as any).chrome?.storage?.sync) {
+      (window as any).chrome.storage.sync.set({ browserFlowBackendUrl: backendUrl }, () => {
+        setStatus("Saved backend URL for the extension.");
+        setTimeout(() => setStatus(null), 2500);
+      });
+    } else {
+      setStatus("Chrome extension API not available. This feature only works in the browser extension context.");
       setTimeout(() => setStatus(null), 2500);
-    });
+    }
   };
 
   return (
