@@ -3,7 +3,7 @@ import { getUserGuestIdHeader } from "@/lib/user-guest-id";
 
 // Base URL for your FastAPI agents backend.
 const FASTAPI_BASE =
-  process.env.BROWSER_FLOW_BACKEND_URL ?? "http://localhost:8000";
+  process.env.BROWSER_FLO_BACKEND_URL ?? "http://localhost:8000";
 
 export async function GET(
   req: Request,
@@ -47,7 +47,7 @@ export async function GET(
     const data = await resp.json();
     return NextResponse.json(data, { status: resp.status });
   } catch (error) {
-    console.error("[Browser Flow] Error calling FastAPI backend", error);
+    console.error("[Browser Flo] Error calling FastAPI backend", error);
     return NextResponse.json(
       { error: "Failed to reach FastAPI backend" },
       { status: 502 },

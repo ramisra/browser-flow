@@ -14,7 +14,7 @@ interface CreateTaskPayload {
 // Base URL for your FastAPI agents backend.
 // In dev this is http://localhost:8000; you can override via env in production.
 const FASTAPI_BASE =
-  process.env.BROWSER_FLOW_BACKEND_URL ?? "http://localhost:8000";
+  process.env.BROWSER_FLO_BACKEND_URL ?? "http://localhost:8000";
 
 export async function POST(req: Request) {
   const body = (await req.json()) as CreateTaskPayload;

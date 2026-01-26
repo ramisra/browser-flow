@@ -5,7 +5,7 @@ const TASK_API_BASE =
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "addSelectionToContext",
-    title: "Add selection to Browser Flow",
+    title: "Add selection to Browser Flo",
     contexts: ["selection"],
   });
 });
@@ -30,8 +30,8 @@ async function pollTaskStatus(taskId) {
       if (data.status === "completed" || data.status === "failed") {
         const title =
           data.status === "completed"
-            ? "Browser Flow task completed"
-            : "Browser Flow task failed";
+            ? "Browser Flo task completed"
+            : "Browser Flo task failed";
         const message =
           data.status === "completed"
             ? data.result?.message ||
@@ -48,7 +48,7 @@ async function pollTaskStatus(taskId) {
       }
     } catch (e) {
       // ignore transient errors; we retry
-      console.warn("[Browser Flow] Poll error", e);
+      console.warn("[Browser Flo] Poll error", e);
     }
   }
 }
@@ -58,19 +58,19 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === "addSelectionToContext") {
     const selectedText = info.selectionText;
     
-    console.log("[Browser Flow] Context menu clicked", {
+    console.log("[Browser Flo] Context menu clicked", {
       selectionText: selectedText,
       tabUrl: tab?.url,
       info: info,
     });
     
     if (!selectedText) {
-      console.error("[Browser Flow] No selection text available");
+      console.error("[Browser Flo] No selection text available");
       return;
     }
     
     if (!tab) {
-      console.error("[Browser Flow] No tab available");
+      console.error("[Browser Flo] No tab available");
       return;
     }
 
@@ -83,9 +83,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           tabTitle: tab.title || null,
         },
       });
-      console.log("[Browser Flow] Sent message to content script to show dialog");
+      console.log("[Browser Flo] Sent message to content script to show dialog");
     } catch (e) {
-      console.error("[Browser Flow] Error sending message to content script", e);
+      console.error("[Browser Flo] Error sending message to content script", e);
       // Fallback: inject content script if not already loaded
       try {
         await chrome.scripting.executeScript({
@@ -101,7 +101,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           },
         });
       } catch (fallbackError) {
-        console.error("[Browser Flow] Fallback also failed", fallbackError);
+        console.error("[Browser Flo] Fallback also failed", fallbackError);
         // Final fallback: send directly without dialog
         await sendSelectedTextToBackend(selectedText, tab.title || null);
       }
@@ -124,7 +124,7 @@ async function sendSelectedTextToBackend(selectedText, tabTitle, userContext = n
       payload.userContext = userContext;
     }
 
-    console.log("[Browser Flow] Sending payload:", payload);
+    console.log("[Browser Flo] Sending payload:", payload);
 
     const resp = await fetch(TASK_API_BASE, {
       method: "POST",
@@ -135,18 +135,18 @@ async function sendSelectedTextToBackend(selectedText, tabTitle, userContext = n
     });
 
     if (!resp.ok) {
-      console.error("[Browser Flow] Failed to create task");
+      console.error("[Browser Flo] Failed to create task");
       return;
     }
 
     const data = await resp.json();
     if (data.id) {
       pollTaskStatus(data.id).catch((e) =>
-        console.error("[Browser Flow] Polling failed", e),
+        console.error("[Browser Flo] Polling failed", e),
       );
     }
   } catch (e) {
-    console.error("[Browser Flow] Error talking to API", e);
+    console.error("[Browser Flo] Error talking to API", e);
   }
 }
 
@@ -185,13 +185,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const data = await resp.json();
         if (data.id) {
           pollTaskStatus(data.id).catch((e) =>
-            console.error("[Browser Flow] Polling failed", e),
+            console.error("[Browser Flo] Polling failed", e),
           );
         }
 
         sendResponse({ ok: true, taskId: data.id });
       } catch (e) {
-        console.error("[Browser Flow] Error talking to API", e);
+        console.error("[Browser Flo] Error talking to API", e);
         sendResponse({ ok: false, error: String(e) });
       }
     })();
