@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUserGuestIdHeader } from "@/lib/user-guest-id";
+import { getUserGuestIdFromRequest } from "@/lib/user-guest-id";
 
 // Base URL for your FastAPI agents backend.
 const FASTAPI_BASE =
@@ -31,10 +31,18 @@ export async function GET(req: Request) {
     queryParams.append("search", search);
   }
 
+  const guestId = getUserGuestIdFromRequest(req);
+  if (!guestId) {
+    return NextResponse.json(
+      { error: "X-User-Guest-ID header is required" },
+      { status: 400 },
+    );
+  }
+
   try {
     const headers = {
       "Content-Type": "application/json",
-      ...getUserGuestIdHeader(),
+      "X-User-Guest-ID": guestId,
     };
 
     const resp = await fetch(

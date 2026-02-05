@@ -7,6 +7,7 @@ import KnowledgeList from "@/components/KnowledgeList";
 import KnowledgeGraph from "@/components/KnowledgeGraph";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Modal from "@/components/Modal";
+import { getUserGuestIdHeader } from "@/lib/user-guest-id";
 
 type ViewMode = "list" | "graph";
 
@@ -22,26 +23,119 @@ interface Context {
   has_children?: boolean;
 }
 
-// Convert graph data to react-d3-tree format
-function convertToTreeData(graphData: any): any[] {
-  if (!graphData?.nodes || graphData.nodes.length === 0) {
-    return [];
-  }
+// Short context ID for display (first 8 chars of UUID)
+function shortContextId(id: string | undefined): string {
+  if (!id) return "—";
+  return id.length >= 8 ? id.substring(0, 8) : id;
+}
 
+// Collect all node IDs from the hierarchical graph (roots + nested children)
+function flattenGraphNodeIds(nodes: any[]): Set<string> {
+  const ids = new Set<string>();
+  function visit(node: any) {
+    if (node?.id) ids.add(node.id);
+    (node?.children || []).forEach(visit);
+  }
+  (nodes || []).forEach(visit);
+  return ids;
+}
+
+// Convert graph data to react-d3-tree format; node names show context IDs.
+// Uses root_nodes (or parent_id === null) so only actual roots are roots; children come from node.children or edges.
+function convertToTreeData(
+  graphData: any,
+  allContexts?: { context_id: string }[]
+): any[] {
   function buildNode(node: any): any {
+    if (!node) return null;
     return {
-      name: node.label || node.url || "Context",
+      name: node.id ? shortContextId(node.id) : node.label || node.url || "Context",
       attributes: {
         context_id: node.id,
         url: node.url,
         context_type: node.context_type || "text",
-        tags: node.tags?.join(", ") || "",
+        tags: Array.isArray(node.tags) ? node.tags.join(", ") : "",
       },
-      children: node.children?.map(buildNode) || [],
+      children: (node.children || []).map(buildNode).filter(Boolean),
     };
   }
 
-  return graphData.nodes.map(buildNode);
+  const roots: any[] = [];
+  const nodes = graphData?.nodes ?? [];
+  const edges = graphData?.edges ?? [];
+  const rootNodeIds = graphData?.root_nodes ?? [];
+
+  if (nodes.length === 0) {
+    // Add any context not in the graph as its own root (disconnected node)
+    if (allContexts?.length) {
+      for (const ctx of allContexts) {
+        const id = ctx.context_id;
+        if (id) {
+          roots.push({
+            name: shortContextId(id),
+            attributes: { context_id: id, url: "", context_type: "text", tags: "" },
+            children: [],
+          });
+        }
+      }
+    }
+    return roots;
+  }
+
+  // Map node id -> node; prefer node that has children populated when duplicated
+  const nodeById = new Map<string, any>();
+  for (const node of nodes) {
+    if (node?.id) {
+      const existing = nodeById.get(node.id);
+      if (!existing || (node.children?.length && !existing.children?.length)) {
+        nodeById.set(node.id, node);
+      }
+    }
+  }
+
+  // If API didn't populate node.children, derive children from edges
+  for (const edge of edges) {
+    const parent = edge?.source != null ? nodeById.get(edge.source) : null;
+    const child = edge?.target != null ? nodeById.get(edge.target) : null;
+    if (parent && child && Array.isArray(parent.children)) {
+      const hasChild = parent.children.some((c: any) => c?.id === child.id);
+      if (!hasChild) parent.children.push(child);
+    } else if (parent && child) {
+      if (!parent.children) parent.children = [];
+      parent.children.push(child);
+    }
+  }
+
+  // Only use root_nodes (or nodes with parent_id === null) as roots so hierarchy is preserved
+  const rootIds =
+    rootNodeIds.length > 0
+      ? rootNodeIds
+      : nodes.filter((n: any) => n?.parent_id == null).map((n: any) => n.id);
+
+  for (const id of rootIds) {
+    const node = nodeById.get(id);
+    if (node) {
+      const treeNode = buildNode(node);
+      if (treeNode) roots.push(treeNode);
+    }
+  }
+
+  // Add any context not already in the graph as its own root (disconnected node)
+  if (allContexts?.length) {
+    const inGraph = new Set(nodeById.keys());
+    for (const ctx of allContexts) {
+      const id = ctx.context_id;
+      if (id && !inGraph.has(id)) {
+        roots.push({
+          name: shortContextId(id),
+          attributes: { context_id: id, url: "", context_type: "text", tags: "" },
+          children: [],
+        });
+      }
+    }
+  }
+
+  return roots;
 }
 
 export default function KnowledgePage() {
@@ -69,13 +163,15 @@ export default function KnowledgePage() {
       if (contextTypeFilter) params.append("context_type", contextTypeFilter);
       if (tagsFilter) params.append("tags", tagsFilter);
 
-      const res = await fetch(`/api/contexts?${params.toString()}`);
+      const res = await fetch(`/api/contexts?${params.toString()}`, {
+        headers: getUserGuestIdHeader(),
+      });
       if (!res.ok) throw new Error("Failed to fetch contexts");
       return res.json();
     },
   });
 
-  // Fetch graph data
+  // Fetch graph data (hierarchical nodes + edges)
   const {
     data: graphData,
     isLoading: isLoadingGraph,
@@ -83,8 +179,23 @@ export default function KnowledgePage() {
   } = useQuery({
     queryKey: ["contexts-graph"],
     queryFn: async () => {
-      const res = await fetch("/api/contexts/graph");
+      const res = await fetch("/api/contexts/graph", {
+        headers: getUserGuestIdHeader(),
+      });
       if (!res.ok) throw new Error("Failed to fetch graph");
+      return res.json();
+    },
+    enabled: viewMode === "graph",
+  });
+
+  // Fetch all context IDs when in graph mode so we can show disconnected nodes
+  const { data: allContextsForGraph } = useQuery({
+    queryKey: ["contexts-all-for-graph"],
+    queryFn: async () => {
+      const res = await fetch("/api/contexts?page=1&page_size=1000", {
+        headers: getUserGuestIdHeader(),
+      });
+      if (!res.ok) throw new Error("Failed to fetch contexts");
       return res.json();
     },
     enabled: viewMode === "graph",
@@ -92,7 +203,9 @@ export default function KnowledgePage() {
 
   const handleViewDetails = async (contextId: string) => {
     try {
-      const res = await fetch(`/api/contexts/${contextId}`);
+      const res = await fetch(`/api/contexts/${contextId}`, {
+        headers: getUserGuestIdHeader(),
+      });
       if (!res.ok) throw new Error("Failed to fetch context details");
       const data = await res.json();
       setSelectedContext(data);
@@ -414,7 +527,7 @@ export default function KnowledgePage() {
             </div>
           ) : (
             <KnowledgeGraph
-              data={convertToTreeData(graphData)}
+              data={convertToTreeData(graphData, allContextsForGraph?.contexts)}
               onNodeClick={(node) => {
                 if (node.attributes?.context_id) {
                   handleViewDetails(node.attributes.context_id);
@@ -425,14 +538,14 @@ export default function KnowledgePage() {
         </>
       )}
 
-      {/* Context Details Modal */}
+      {/* Context Details Modal – click a node/card to see raw context */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           setSelectedContext(null);
         }}
-        title="Context Details"
+        title={`Context ${shortContextId(selectedContext?.context_id)}`}
         size="lg"
       >
         {selectedContext && (
@@ -443,6 +556,29 @@ export default function KnowledgePage() {
               gap: "var(--spacing-md)",
             }}
           >
+            <div>
+              <label
+                style={{
+                  fontSize: "0.75rem",
+                  color: "var(--text-muted)",
+                  textTransform: "uppercase",
+                  marginBottom: "var(--spacing-xs)",
+                  display: "block",
+                }}
+              >
+                Context ID
+              </label>
+              <p
+                style={{
+                  fontFamily: "monospace",
+                  fontSize: "0.875rem",
+                  color: "var(--text-secondary)",
+                  wordBreak: "break-all",
+                }}
+              >
+                {selectedContext.context_id}
+              </p>
+            </div>
             {selectedContext.url && (
               <div>
                 <label
@@ -498,7 +634,7 @@ export default function KnowledgePage() {
                     display: "block",
                   }}
                 >
-                  Content
+                  Raw context
                 </label>
                 <p
                   style={{

@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
-import { getUserGuestIdHeader } from "@/lib/user-guest-id";
-
-type TaskType = "add_to_context" | "create_action_from_context";
+import { getGuestIdOrGenerate } from "@/lib/user-guest-id";
 
 interface CreateTaskPayload {
   url?: string;
+  urls?: string[];
   selectedText?: string;
-  taskType: TaskType;
   userContext?: string;
-  metadata?: Record<string, unknown>;
 }
 
 // Base URL for your FastAPI agents backend.
@@ -21,51 +18,32 @@ export async function POST(req: Request) {
 
   console.log("[Browser Flow API] Received request body:", JSON.stringify(body, null, 2));
 
-  if (!body.taskType) {
-    return NextResponse.json(
-      { error: "Missing taskType" },
-      { status: 400 },
-    );
-  }
-
-  if (!body.url && !body.selectedText) {
-    return NextResponse.json(
-      { error: "Missing url or selectedText" },
-      { status: 400 },
-    );
-  }
-
   try {
     const backendPayload: {
-      task_type: TaskType;
       urls?: string[];
       selected_text?: string;
       user_context?: string;
-      metadata: Record<string, unknown>;
-    } = {
-      task_type: body.taskType,
-      metadata: body.metadata ?? {},
-    };
+    } = {};
 
-    // If selectedText is present, only send selectedText (don't send URL)
-    // If only URL is present (no selectedText), send URL
-    if (body.selectedText) {
-      backendPayload.selected_text = body.selectedText;
-      // Explicitly don't include URL when selectedText is present
+    if (body.urls?.length) {
+      backendPayload.urls = body.urls;
     } else if (body.url) {
       backendPayload.urls = [body.url];
     }
-
-    // Include user context if provided
+    if (body.selectedText) {
+      backendPayload.selected_text = body.selectedText;
+    }
     if (body.userContext) {
       backendPayload.user_context = body.userContext;
     }
 
     console.log("[Browser Flow API] Sending to FastAPI backend:", JSON.stringify(backendPayload, null, 2));
 
+    // Use header when sent (dashboard/reloaded extension); otherwise generate one so extension still works before reload
+    const guestId = getGuestIdOrGenerate(req);
     const headers = {
       "Content-Type": "application/json",
-      ...getUserGuestIdHeader(),
+      "X-User-Guest-ID": guestId,
     };
 
     const resp = await fetch(`${FASTAPI_BASE}/api/tasks`, {
@@ -91,10 +69,11 @@ export async function GET(req: Request) {
 
   // If id is provided, get specific task details
   if (id) {
+    const guestId = getGuestIdOrGenerate(req);
     try {
       const headers = {
         "Content-Type": "application/json",
-        ...getUserGuestIdHeader(),
+        "X-User-Guest-ID": guestId,
       };
 
       const includeContexts = searchParams.get("include_contexts");
@@ -145,9 +124,10 @@ export async function GET(req: Request) {
       queryParams.append("search", search);
     }
 
+    const guestId = getGuestIdOrGenerate(req);
     const headers = {
       "Content-Type": "application/json",
-      ...getUserGuestIdHeader(),
+      "X-User-Guest-ID": guestId,
     };
 
     const resp = await fetch(

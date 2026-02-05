@@ -5,22 +5,26 @@ import { Settings } from "lucide-react";
 
 interface IntegrationCardProps {
   name: string;
+  description?: string;
   icon?: React.ReactNode;
-  status: "enabled" | "disabled";
-  usageCount?: number;
-  onToggle: (enabled: boolean) => void;
+  status: "enabled" | "available";
+  onToggle?: (enabled: boolean) => void;
+  onEnable?: () => void;
   onConfigure?: () => void;
 }
 
 export default function IntegrationCard({
   name,
+  description,
   icon,
   status,
-  usageCount = 0,
   onToggle,
+  onEnable,
   onConfigure,
 }: IntegrationCardProps) {
   const isEnabled = status === "enabled";
+  const statusLabel = isEnabled ? "Enabled" : "Available";
+  const statusColor = isEnabled ? "var(--status-success)" : "var(--text-muted)";
 
   return (
     <div
@@ -107,14 +111,14 @@ export default function IntegrationCard({
           >
             {name}
           </h3>
-          {usageCount > 0 && (
+          {description && (
             <p
               style={{
                 fontSize: "0.875rem",
                 color: "var(--text-muted)",
               }}
             >
-              Used in {usageCount} task{usageCount !== 1 ? "s" : ""}
+              {description}
             </p>
           )}
         </div>
@@ -130,39 +134,58 @@ export default function IntegrationCard({
         <span
           style={{
             fontSize: "0.875rem",
-            color: isEnabled ? "var(--status-success)" : "var(--text-muted)",
+            color: statusColor,
           }}
         >
-          {isEnabled ? "Enabled" : "Disabled"}
+          {statusLabel}
         </span>
-        <button
-          onClick={() => onToggle(!isEnabled)}
-          style={{
-            position: "relative",
-            width: "44px",
-            height: "24px",
-            borderRadius: "var(--radius-full)",
-            border: "none",
-            backgroundColor: isEnabled ? "var(--accent-blue)" : "var(--border-color-dark)",
-            cursor: "pointer",
-            transition: "all var(--transition-base)",
-            padding: "2px",
-          }}
-        >
-          <span
+        {onToggle && (
+          <button
+            onClick={() => onToggle(!isEnabled)}
             style={{
-              position: "absolute",
-              top: "2px",
-              left: isEnabled ? "22px" : "2px",
-              width: "20px",
-              height: "20px",
-              borderRadius: "50%",
-              backgroundColor: "white",
-              transition: "left var(--transition-base)",
-              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+              position: "relative",
+              width: "44px",
+              height: "24px",
+              borderRadius: "var(--radius-full)",
+              border: "none",
+              backgroundColor: isEnabled ? "var(--accent-blue)" : "var(--border-color-dark)",
+              cursor: "pointer",
+              transition: "all var(--transition-base)",
+              padding: "2px",
             }}
-          />
-        </button>
+          >
+            <span
+              style={{
+                position: "absolute",
+                top: "2px",
+                left: isEnabled ? "22px" : "2px",
+                width: "20px",
+                height: "20px",
+                borderRadius: "50%",
+                backgroundColor: "white",
+                transition: "left var(--transition-base)",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+              }}
+            />
+          </button>
+        )}
+        {!onToggle && onEnable && (
+          <button
+            onClick={onEnable}
+            style={{
+              padding: "6px 12px",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--border-color)",
+              backgroundColor: "transparent",
+              color: "var(--text-primary)",
+              cursor: "pointer",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+            }}
+          >
+            Enable
+          </button>
+        )}
       </div>
     </div>
   );

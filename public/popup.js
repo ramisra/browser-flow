@@ -1,5 +1,4 @@
 const statusEl = document.getElementById("status");
-const taskTypeEl = document.getElementById("taskType");
 const userContextEl = document.getElementById("userContext");
 const btn = document.getElementById("startBtn");
 
@@ -22,13 +21,7 @@ btn.addEventListener("click", () => {
     const userContext = userContextEl.value.trim();
     const payload = {
       url: tab.url,
-      taskType: taskTypeEl.value,
-      metadata: {
-        title: tab.title || null,
-      },
     };
-
-    // Include user context if provided
     if (userContext) {
       payload.userContext = userContext;
     }

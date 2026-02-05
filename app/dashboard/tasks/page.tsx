@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import StatusBadge from "@/components/StatusBadge";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Modal from "@/components/Modal";
+import { getUserGuestIdHeader } from "@/lib/user-guest-id";
 
 interface Task {
   task_id: string;
@@ -60,7 +61,9 @@ export default function TasksPage() {
       if (searchQuery) params.append("search", searchQuery);
       if (taskTypeFilter) params.append("task_type", taskTypeFilter);
 
-      const res = await fetch(`/api/tasks?${params.toString()}`);
+      const res = await fetch(`/api/tasks?${params.toString()}`, {
+        headers: getUserGuestIdHeader(),
+      });
       if (!res.ok) throw new Error("Failed to fetch tasks");
       return res.json();
     },
@@ -68,7 +71,9 @@ export default function TasksPage() {
 
   const handleViewDetails = async (taskId: string) => {
     try {
-      const res = await fetch(`/api/tasks?id=${taskId}&include_contexts=true`);
+      const res = await fetch(`/api/tasks?id=${taskId}&include_contexts=true`, {
+        headers: getUserGuestIdHeader(),
+      });
       if (!res.ok) throw new Error("Failed to fetch task details");
       const data = await res.json();
       setSelectedTask(data);

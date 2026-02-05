@@ -31,76 +31,44 @@ curl -X GET "http://localhost:8000/health"
 ### 1. Create/Initiate a Task
 
 #### POST /api/tasks
-Create a new task. Supports two main task types: `add_to_context` and `create_action_from_context`.
+Create a new task. The request body has three optional fields; task type is auto-detected by the backend. All fields are optional.
 
-**Example 1: Add to Context (with URLs)**
+- `urls`: Optional list of URLs (strings).
+- `selected_text`: Optional string (e.g. user-selected text).
+- `user_context`: Optional string (e.g. user notes).
+
+**Example 1: With URLs only**
 ```bash
 curl -X POST "http://localhost:8000/api/tasks" \
   -H "Content-Type: application/json" \
   -H "X-User-Guest-ID: 550e8400-e29b-41d4-a716-446655440000" \
   -d '{
-    "task_type": "add_to_context",
     "urls": [
       "https://example.com/article1",
       "https://example.com/article2"
-    ],
-    "workflow_tools": ["notion", "trello"]
+    ]
   }'
 ```
 
-**Example 2: Add to Context (with selected text)**
+**Example 2: With selected text and user context**
 ```bash
 curl -X POST "http://localhost:8000/api/tasks" \
   -H "Content-Type: application/json" \
   -H "X-User-Guest-ID: 550e8400-e29b-41d4-a716-446655440000" \
   -d '{
-    "task_type": "add_to_context",
     "selected_text": "This is some important context that I want to save...",
     "user_context": "Additional notes about this context"
   }'
 ```
 
-**Example 3: Create Action from Context**
+**Example 3: With URLs and user context**
 ```bash
 curl -X POST "http://localhost:8000/api/tasks" \
   -H "Content-Type: application/json" \
   -H "X-User-Guest-ID: 550e8400-e29b-41d4-a716-446655440000" \
   -d '{
-    "task_type": "create_action_from_context",
     "urls": ["https://example.com/research-paper"],
-    "workflow_tools": ["notion", "trello", "miro"]
-  }'
-```
-
-**Example 4: Other Task Types**
-```bash
-# Note Taking
-curl -X POST "http://localhost:8000/api/tasks" \
-  -H "Content-Type: application/json" \
-  -H "X-User-Guest-ID: 550e8400-e29b-41d4-a716-446655440000" \
-  -d '{
-    "task_type": "note_taking",
-    "selected_text": "Meeting notes from today...",
-    "workflow_tools": ["notion"]
-  }'
-
-# Add to Knowledge Base
-curl -X POST "http://localhost:8000/api/tasks" \
-  -H "Content-Type: application/json" \
-  -H "X-User-Guest-ID: 550e8400-e29b-41d4-a716-446655440000" \
-  -d '{
-    "task_type": "add_to_knowledge_base",
-    "urls": ["https://example.com/documentation"]
-  }'
-
-# Create TODO
-curl -X POST "http://localhost:8000/api/tasks" \
-  -H "Content-Type: application/json" \
-  -H "X-User-Guest-ID: 550e8400-e29b-41d4-a716-446655440000" \
-  -d '{
-    "task_type": "create_todo",
-    "selected_text": "Tasks to complete this week",
-    "workflow_tools": ["trello"]
+    "user_context": "Use this for the weekly summary"
   }'
 ```
 

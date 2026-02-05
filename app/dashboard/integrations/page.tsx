@@ -1,19 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileSpreadsheet, FileText, Table, Trello, Workflow, Presentation } from "lucide-react";
 import IntegrationCard from "@/components/IntegrationCard";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Modal from "@/components/Modal";
+import { getUserGuestIdHeader } from "@/lib/user-guest-id";
+import {
+  getIntegrationMetadataDefaults,
+  getIntegrationMetadataFields,
+} from "@/lib/integration-metadata";
 
-interface Integration {
+interface IntegrationCapability {
   id: string;
   name: string;
-  icon: string;
-  enabled: boolean;
-  usageCount: number;
   description: string;
+}
+
+interface IntegrationToken {
+  integration_tool?: string;
+  id?: string;
+  integration_metadata?: Record<string, string>;
 }
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -26,48 +34,140 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export default function IntegrationsPage() {
-  const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
+  const [selectedIntegration, setSelectedIntegration] = useState<IntegrationCapability | null>(null);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [metadataValues, setMetadataValues] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
 
   const {
-    data: integrationsData,
-    isLoading,
-    error,
+    data: capabilitiesData,
+    isLoading: isLoadingCapabilities,
+    error: capabilitiesError,
   } = useQuery({
-    queryKey: ["integrations"],
+    queryKey: ["integration-capabilities"],
     queryFn: async () => {
-      const res = await fetch("/api/integrations");
-      if (!res.ok) throw new Error("Failed to fetch integrations");
+      const res = await fetch("/api/integrations/capabilities");
+      if (!res.ok) throw new Error("Failed to fetch integration capabilities");
       return res.json();
     },
   });
 
-  const toggleMutation = useMutation({
-    mutationFn: async ({ integrationId, enabled }: { integrationId: string; enabled: boolean }) => {
-      const res = await fetch("/api/integrations", {
+  const {
+    data: tokensData,
+    isLoading: isLoadingTokens,
+    error: tokensError,
+  } = useQuery({
+    queryKey: ["integration-tokens"],
+    queryFn: async () => {
+      const res = await fetch("/api/integrations/tokens", {
+        headers: getUserGuestIdHeader(),
+      });
+      if (!res.ok) throw new Error("Failed to fetch integration tokens");
+      return res.json();
+    },
+  });
+
+  const enableMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedIntegration) {
+        throw new Error("No integration selected");
+      }
+
+      const res = await fetch("/api/integrations/tokens", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getUserGuestIdHeader(),
+        },
         body: JSON.stringify({
-          action: "toggle",
-          integrationId,
-          enabled,
+          integration_tool: selectedIntegration.id,
+          api_key: apiKey,
+          integration_metadata: metadataValues,
         }),
       });
-      if (!res.ok) throw new Error("Failed to toggle integration");
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to enable integration");
+      }
+
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["integration-tokens"] });
+      setIsConfigModalOpen(false);
+      setSelectedIntegration(null);
     },
   });
 
-  const handleToggle = (integrationId: string, enabled: boolean) => {
-    toggleMutation.mutate({ integrationId, enabled });
-  };
+  const normalizedTokens = useMemo<IntegrationToken[]>(() => {
+    if (!tokensData) return [];
+    if (Array.isArray(tokensData)) return tokensData;
+    if (Array.isArray(tokensData.tokens)) return tokensData.tokens;
+    if (Array.isArray(tokensData.integrations)) return tokensData.integrations;
+    return [];
+  }, [tokensData]);
 
-  const handleConfigure = (integration: Integration) => {
+  const capabilities = useMemo<IntegrationCapability[]>(() => {
+    return Array.isArray(capabilitiesData?.integrations) ? capabilitiesData.integrations : [];
+  }, [capabilitiesData]);
+
+  const tokenIds = useMemo(() => {
+    return new Set(
+      normalizedTokens
+        .map((token) => token.integration_tool ?? token.id)
+        .filter((id): id is string => Boolean(id)),
+    );
+  }, [normalizedTokens]);
+
+  const tokensByIntegration = useMemo(() => {
+    return normalizedTokens.reduce<Record<string, IntegrationToken>>((acc, token) => {
+      const key = token.integration_tool ?? token.id;
+      if (key) {
+        acc[key] = token;
+      }
+      return acc;
+    }, {});
+  }, [normalizedTokens]);
+
+  const enabledIntegrations = useMemo<IntegrationCapability[]>(() => {
+    const known = capabilities.filter((capability) => tokenIds.has(capability.id));
+    const knownIds = new Set(known.map((capability) => capability.id));
+    const unknown = normalizedTokens
+      .map((token) => token.integration_tool ?? token.id)
+      .filter((id): id is string => Boolean(id) && !knownIds.has(id))
+      .map((id) => ({
+        id,
+        name: id,
+        description: "Enabled integration",
+      }));
+
+    return [...known, ...unknown];
+  }, [capabilities, normalizedTokens, tokenIds]);
+
+  const availableIntegrations = useMemo<IntegrationCapability[]>(() => {
+    return capabilities.filter((capability) => !tokenIds.has(capability.id));
+  }, [capabilities, tokenIds]);
+
+  const metadataFields = selectedIntegration
+    ? getIntegrationMetadataFields(selectedIntegration.id)
+    : [];
+
+  const isSaveDisabled = useMemo(() => {
+    if (!apiKey.trim()) return true;
+    const missingRequired = metadataFields.some(
+      (field) => field.required && !metadataValues[field.key]?.trim(),
+    );
+    return missingRequired || enableMutation.isLoading;
+  }, [apiKey, metadataFields, metadataValues, enableMutation.isLoading]);
+
+  const handleEnable = (integration: IntegrationCapability) => {
     setSelectedIntegration(integration);
+    const defaults = getIntegrationMetadataDefaults(integration.id);
+    const tokenMetadata = tokensByIntegration[integration.id]?.integration_metadata ?? {};
+    setMetadataValues({ ...defaults, ...tokenMetadata });
+    setApiKey("");
     setIsConfigModalOpen(true);
   };
 
@@ -102,7 +202,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Integrations Grid */}
-      {isLoading ? (
+      {isLoadingCapabilities || isLoadingTokens ? (
         <div
           style={{
             display: "flex",
@@ -113,7 +213,7 @@ export default function IntegrationsPage() {
         >
           <LoadingSpinner size="lg" />
         </div>
-      ) : error ? (
+      ) : capabilitiesError || tokensError ? (
         <div
           className="card"
           style={{
@@ -125,24 +225,95 @@ export default function IntegrationsPage() {
           Error loading integrations. Please try again.
         </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            gap: "var(--spacing-lg)",
-          }}
-        >
-          {integrationsData?.integrations?.map((integration: Integration) => (
-            <IntegrationCard
-              key={integration.id}
-              name={integration.name}
-              icon={iconMap[integration.id] || <FileText size={24} />}
-              status={integration.enabled ? "enabled" : "disabled"}
-              usageCount={integration.usageCount}
-              onToggle={(enabled) => handleToggle(integration.id, enabled)}
-              onConfigure={() => handleConfigure(integration)}
-            />
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-xl)" }}>
+          {enabledIntegrations.length === 0 && availableIntegrations.length === 0 ? (
+            <div
+              className="card"
+              style={{
+                padding: "var(--spacing-xl)",
+                textAlign: "center",
+                color: "var(--text-muted)",
+              }}
+            >
+              No integrations available yet.
+            </div>
+          ) : (
+            <>
+              <div>
+                <h2
+                  style={{
+                    fontSize: "1.125rem",
+                    fontWeight: 600,
+                    marginBottom: "var(--spacing-sm)",
+                  }}
+                >
+                  Enabled Integrations
+                </h2>
+                {enabledIntegrations.length === 0 ? (
+                  <div
+                    className="card"
+                    style={{
+                      padding: "var(--spacing-md)",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    No integrations enabled yet.
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                      gap: "var(--spacing-lg)",
+                    }}
+                  >
+                    {enabledIntegrations.map((integration) => (
+                      <IntegrationCard
+                        key={integration.id}
+                        name={integration.name}
+                        description={integration.description}
+                        icon={iconMap[integration.id] || <FileText size={24} />}
+                        status="enabled"
+                        onConfigure={() => handleEnable(integration)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {availableIntegrations.length > 0 && (
+                <div>
+                  <h2
+                    style={{
+                      fontSize: "1.125rem",
+                      fontWeight: 600,
+                      marginBottom: "var(--spacing-sm)",
+                    }}
+                  >
+                    Available Integrations
+                  </h2>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                      gap: "var(--spacing-lg)",
+                    }}
+                  >
+                    {availableIntegrations.map((integration) => (
+                      <IntegrationCard
+                        key={integration.id}
+                        name={integration.name}
+                        description={integration.description}
+                        icon={iconMap[integration.id] || <FileText size={24} />}
+                        status="available"
+                        onEnable={() => handleEnable(integration)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
@@ -182,11 +353,13 @@ export default function IntegrationsPage() {
                   display: "block",
                 }}
               >
-                API Key / Configuration
+                API Key
               </label>
               <input
-                type="text"
-                placeholder="Enter API key or configuration..."
+                type="password"
+                placeholder="Enter API key"
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
                 style={{
                   width: "100%",
                   padding: "var(--spacing-sm) var(--spacing-md)",
@@ -197,6 +370,56 @@ export default function IntegrationsPage() {
                 }}
               />
             </div>
+            {metadataFields.map((field) => (
+              <div key={field.key}>
+                <label
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--text-muted)",
+                    textTransform: "uppercase",
+                    marginBottom: "var(--spacing-xs)",
+                    display: "block",
+                  }}
+                >
+                  {field.label}
+                </label>
+                <input
+                  type={field.inputType ?? "text"}
+                  placeholder={field.placeholder}
+                  value={metadataValues[field.key] ?? ""}
+                  onChange={(event) =>
+                    setMetadataValues((prev) => ({
+                      ...prev,
+                      [field.key]: event.target.value,
+                    }))
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "var(--spacing-sm) var(--spacing-md)",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--border-color)",
+                    backgroundColor: "var(--bg-primary)",
+                    color: "var(--text-primary)",
+                  }}
+                />
+                {field.helpText && (
+                  <p
+                    style={{
+                      marginTop: "var(--spacing-xs)",
+                      fontSize: "0.75rem",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    {field.helpText}
+                  </p>
+                )}
+              </div>
+            ))}
+            {enableMutation.isError && (
+              <div style={{ color: "var(--status-error)", fontSize: "0.875rem" }}>
+                {(enableMutation.error as Error).message}
+              </div>
+            )}
             <div
               style={{
                 display: "flex",
@@ -206,7 +429,10 @@ export default function IntegrationsPage() {
               }}
             >
               <button
-                onClick={() => setIsConfigModalOpen(false)}
+                onClick={() => {
+                  setIsConfigModalOpen(false);
+                  setSelectedIntegration(null);
+                }}
                 style={{
                   padding: "var(--spacing-sm) var(--spacing-md)",
                   borderRadius: "var(--radius-md)",
@@ -219,10 +445,8 @@ export default function IntegrationsPage() {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  // TODO: Save configuration
-                  setIsConfigModalOpen(false);
-                }}
+                onClick={() => enableMutation.mutate()}
+                disabled={isSaveDisabled}
                 style={{
                   padding: "var(--spacing-sm) var(--spacing-md)",
                   borderRadius: "var(--radius-md)",
@@ -231,9 +455,10 @@ export default function IntegrationsPage() {
                   color: "var(--text-dark)",
                   fontWeight: 600,
                   cursor: "pointer",
+                  opacity: isSaveDisabled ? 0.6 : 1,
                 }}
               >
-                Save
+                {enableMutation.isLoading ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

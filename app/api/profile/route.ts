@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
-import { getUserGuestId } from "@/lib/user-guest-id";
+import { getUserGuestIdFromRequest } from "@/lib/user-guest-id";
 
 // Mock profile data
 // In the future, this could fetch from FastAPI or derive from tasks/contexts
 export async function GET(req: Request) {
-  const userGuestId = getUserGuestId();
+  const userGuestId = getUserGuestIdFromRequest(req);
+  if (!userGuestId) {
+    return NextResponse.json(
+      { error: "X-User-Guest-ID header is required" },
+      { status: 400 },
+    );
+  }
 
   // Mock profile data
   // In production, this could be derived from tasks/contexts endpoints

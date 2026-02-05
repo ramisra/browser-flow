@@ -205,12 +205,7 @@ function showContextDialog(data) {
 
     const payload = {
       selectedText: selectedText,
-      taskType: "add_to_context",
-      metadata: {
-        title: tabTitle || null,
-      },
     };
-
     if (userContext) {
       payload.userContext = userContext;
     }

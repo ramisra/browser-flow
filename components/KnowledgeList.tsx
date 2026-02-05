@@ -55,11 +55,21 @@ export default function KnowledgeList({
         <div
           key={context.context_id}
           className="card"
+          role="button"
+          tabIndex={0}
+          onClick={() => onViewDetails?.(context.context_id)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onViewDetails?.(context.context_id);
+            }
+          }}
           style={{
             display: "flex",
             flexDirection: "column",
             gap: "var(--spacing-sm)",
             position: "relative",
+            cursor: "pointer",
           }}
         >
           {/* Three-dot menu */}
@@ -69,6 +79,7 @@ export default function KnowledgeList({
               top: "var(--spacing-md)",
               right: "var(--spacing-md)",
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <button
               style={{
@@ -97,7 +108,7 @@ export default function KnowledgeList({
             </button>
           </div>
 
-          {/* Header */}
+          {/* Header – context ID as primary identifier */}
           <div
             style={{
               display: "flex",
@@ -107,6 +118,20 @@ export default function KnowledgeList({
             }}
           >
             <div style={{ flex: 1 }}>
+              <p
+                style={{
+                  fontSize: "0.875rem",
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                  fontFamily: "monospace",
+                  marginBottom: "var(--spacing-xs)",
+                }}
+                title={context.context_id}
+              >
+                {context.context_id.length >= 8
+                  ? context.context_id.substring(0, 8) + "…"
+                  : context.context_id}
+              </p>
               {context.url && (
                 <div
                   style={{
@@ -237,10 +262,14 @@ export default function KnowledgeList({
                 display: "flex",
                 gap: "var(--spacing-sm)",
               }}
+              onClick={(e) => e.stopPropagation()}
             >
               {onViewDetails && (
                 <button
-                  onClick={() => onViewDetails(context.context_id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewDetails(context.context_id);
+                  }}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -269,7 +298,10 @@ export default function KnowledgeList({
               )}
               {onDelete && (
                 <button
-                  onClick={() => onDelete(context.context_id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(context.context_id);
+                  }}
                   style={{
                     display: "flex",
                     alignItems: "center",

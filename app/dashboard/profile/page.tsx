@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { User, Calendar, CreditCard, BarChart3, RefreshCw, Copy, Check } from "lucide-react";
-import { getUserGuestId, regenerateUserGuestId } from "@/lib/user-guest-id";
+import { getUserGuestId, getUserGuestIdHeader, regenerateUserGuestId } from "@/lib/user-guest-id";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function ProfilePage() {
@@ -19,7 +19,9 @@ export default function ProfilePage() {
   } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
-      const res = await fetch("/api/profile");
+      const res = await fetch("/api/profile", {
+        headers: getUserGuestIdHeader(),
+      });
       if (!res.ok) throw new Error("Failed to fetch profile");
       return res.json();
     },

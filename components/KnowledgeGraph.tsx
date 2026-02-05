@@ -65,8 +65,12 @@ export default function KnowledgeGraph({
         separation={{ siblings: 1, nonSiblings: 1.5 }}
         renderCustomNodeElement={(rd3tProps: any) => {
           const { nodeDatum } = rd3tProps;
+          const contextId = nodeDatum.attributes?.context_id;
           return (
             <g>
+              {contextId && (
+                <title>{`Context ID: ${contextId}\nClick to view raw context`}</title>
+              )}
               <circle
                 r={15}
                 fill={
@@ -91,17 +95,26 @@ export default function KnowledgeGraph({
               >
                 {nodeDatum.name?.substring(0, 30) || "Context"}
               </text>
-              {nodeDatum.attributes?.url && (
-                <text
-                  x={0}
-                  y={-10}
-                  textAnchor="middle"
-                  fill="var(--text-muted)"
-                  fontSize="10"
-                >
-                  {new URL(nodeDatum.attributes.url).hostname}
-                </text>
-              )}
+              {(() => {
+                const urlStr = nodeDatum.attributes?.url;
+                if (!urlStr || typeof urlStr !== "string") return null;
+                try {
+                  const url = new URL(urlStr);
+                  return (
+                    <text
+                      x={0}
+                      y={-10}
+                      textAnchor="middle"
+                      fill="var(--text-muted)"
+                      fontSize="10"
+                    >
+                      {url.hostname}
+                    </text>
+                  );
+                } catch {
+                  return null;
+                }
+              })()}
             </g>
           );
         }}

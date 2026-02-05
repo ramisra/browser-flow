@@ -1,6 +1,26 @@
 const TASK_API_BASE =
   "https://localhost:3000/api/tasks".replace("https://", "http://");
 
+const USER_GUEST_ID_KEY = "browser-flow-user-guest-id";
+
+function generateUUID() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+async function getOrCreateGuestId() {
+  const result = await chrome.storage.local.get(USER_GUEST_ID_KEY);
+  let guestId = result[USER_GUEST_ID_KEY];
+  if (!guestId) {
+    guestId = generateUUID();
+    await chrome.storage.local.set({ [USER_GUEST_ID_KEY]: guestId });
+  }
+  return guestId;
+}
+
 // Create context menu on extension install
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -23,7 +43,10 @@ async function pollTaskStatus(taskId) {
 
     try {
       const url = `${TASK_API_BASE}?id=${encodeURIComponent(taskId)}`;
-      const resp = await fetch(url);
+      const guestId = await getOrCreateGuestId();
+      const resp = await fetch(url, {
+        headers: { "X-User-Guest-ID": guestId },
+      });
       if (!resp.ok) continue;
       const data = await resp.json();
 
@@ -114,22 +137,19 @@ async function sendSelectedTextToBackend(selectedText, tabTitle, userContext = n
   try {
     const payload = {
       selectedText: selectedText,
-      taskType: "add_to_context",
-      metadata: {
-        title: tabTitle,
-      },
     };
-
     if (userContext) {
       payload.userContext = userContext;
     }
 
     console.log("[Browser Flo] Sending payload:", payload);
 
+    const guestId = await getOrCreateGuestId();
     const resp = await fetch(TASK_API_BASE, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-User-Guest-ID": guestId,
       },
       body: JSON.stringify(payload),
     });
@@ -154,25 +174,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "START_TASK") {
     (async () => {
       try {
-        const { url, selectedText, taskType, userContext, metadata } = message.payload;
-        const payload = { taskType, metadata: metadata || {} };
-        
-        // Include url or selectedText (or both) in the payload
+        const { url, urls, selectedText, userContext } = message.payload;
+        const payload = {};
         if (url) {
           payload.url = url;
+        }
+        if (urls?.length) {
+          payload.urls = urls;
         }
         if (selectedText) {
           payload.selectedText = selectedText;
         }
-        // Include user context if provided
         if (userContext) {
           payload.userContext = userContext;
         }
 
+        const guestId = await getOrCreateGuestId();
         const resp = await fetch(TASK_API_BASE, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-User-Guest-ID": guestId,
           },
           body: JSON.stringify(payload),
         });
