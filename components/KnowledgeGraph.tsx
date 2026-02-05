@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Tree from "react-d3-tree";
 
 interface TreeNode {
@@ -12,21 +12,42 @@ interface TreeNode {
 interface KnowledgeGraphProps {
   data: TreeNode[];
   onNodeClick?: (node: any) => void;
+  selectedRootId?: string;
+  highlightNodeIds?: Set<string> | string[];
 }
 
 export default function KnowledgeGraph({
   data,
   onNodeClick,
+  selectedRootId,
+  highlightNodeIds,
 }: KnowledgeGraphProps) {
   const treeContainerRef = useRef<HTMLDivElement>(null);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const highlightSet = useMemo(() => {
+    if (!highlightNodeIds) return new Set<string>();
+    return Array.isArray(highlightNodeIds)
+      ? new Set(highlightNodeIds)
+      : highlightNodeIds;
+  }, [highlightNodeIds]);
 
   useEffect(() => {
-    if (treeContainerRef.current && data.length > 0) {
-      // Center the tree on mount
-      const dimensions = treeContainerRef.current.getBoundingClientRect();
-      // Tree will auto-center, but we can adjust if needed
-    }
-  }, [data]);
+    if (!treeContainerRef.current) return;
+    const container = treeContainerRef.current;
+    const updateTranslate = () => {
+      const { width } = container.getBoundingClientRect();
+      const nextTranslate = {
+        x: Math.max(width / 2, 200),
+        y: 60,
+      };
+      setTranslate(nextTranslate);
+    };
+
+    updateTranslate();
+    const observer = new ResizeObserver(() => updateTranslate());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [data, selectedRootId]);
 
   if (!data || data.length === 0) {
     return (
@@ -60,12 +81,15 @@ export default function KnowledgeGraph({
         data={data}
         orientation="vertical"
         pathFunc="straight"
-        translate={{ x: 400, y: 50 }}
+        translate={translate}
         nodeSize={{ x: 200, y: 150 }}
         separation={{ siblings: 1, nonSiblings: 1.5 }}
         renderCustomNodeElement={(rd3tProps: any) => {
           const { nodeDatum } = rd3tProps;
           const contextId = nodeDatum.attributes?.context_id;
+          const isHighlighted =
+            contextId && highlightSet.size > 0 ? highlightSet.has(contextId) : true;
+          const nodeOpacity = selectedRootId ? (isHighlighted ? 1 : 0.35) : 1;
           return (
             <g>
               {contextId && (
@@ -80,10 +104,10 @@ export default function KnowledgeGraph({
                       ? "var(--accent-green)"
                       : "var(--accent-orange)"
                 }
-                stroke="var(--border-color)"
-                strokeWidth={2}
+                stroke={isHighlighted ? "var(--accent-blue)" : "var(--border-color)"}
+                strokeWidth={isHighlighted ? 3 : 2}
                 onClick={() => onNodeClick?.(nodeDatum)}
-                style={{ cursor: "pointer" }}
+                style={{ cursor: "pointer", opacity: nodeOpacity }}
               />
               <text
                 x={0}
@@ -92,6 +116,7 @@ export default function KnowledgeGraph({
                 fill="var(--text-primary)"
                 fontSize="12"
                 fontWeight={500}
+                opacity={nodeOpacity}
               >
                 {nodeDatum.name?.substring(0, 30) || "Context"}
               </text>
@@ -107,6 +132,7 @@ export default function KnowledgeGraph({
                       textAnchor="middle"
                       fill="var(--text-muted)"
                       fontSize="10"
+                      opacity={nodeOpacity}
                     >
                       {url.hostname}
                     </text>
@@ -120,7 +146,7 @@ export default function KnowledgeGraph({
         }}
         styles={{
           links: {
-            stroke: "var(--accent-blue)",
+            stroke: selectedRootId ? "rgba(59, 130, 246, 0.4)" : "var(--accent-blue)",
             strokeWidth: 2,
             fill: "none",
           },
