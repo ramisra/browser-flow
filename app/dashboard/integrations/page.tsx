@@ -141,7 +141,8 @@ export default function IntegrationsPage() {
     const knownIds = new Set(known.map((capability) => capability.id));
     const unknown = normalizedTokens
       .map((token) => token.integration_tool ?? token.id)
-      .filter((id): id is string => Boolean(id) && !knownIds.has(id))
+      .filter((id): id is string => Boolean(id))
+      .filter((id) => !knownIds.has(id))
       .map((id) => ({
         id,
         name: id,
@@ -164,8 +165,8 @@ export default function IntegrationsPage() {
     const missingRequired = metadataFields.some(
       (field) => field.required && !metadataValues[field.key]?.trim(),
     );
-    return missingRequired || enableMutation.isLoading;
-  }, [apiKey, metadataFields, metadataValues, enableMutation.isLoading]);
+    return missingRequired || enableMutation.isPending;
+  }, [apiKey, metadataFields, metadataValues, enableMutation.isPending]);
 
   const handleEnable = (integration: IntegrationCapability) => {
     const defaults = getIntegrationMetadataDefaults(integration.id);
@@ -465,7 +466,13 @@ export default function IntegrationsPage() {
               Cancel
             </button>
               <button
-                onClick={() => enableMutation.mutate()}
+                onClick={() =>
+                  enableMutation.mutate({
+                    integration: selectedIntegration!,
+                    apiKey,
+                    metadataValues,
+                  })
+                }
                 disabled={isSaveDisabled}
                 style={{
                   padding: "var(--spacing-sm) var(--spacing-md)",
@@ -478,7 +485,7 @@ export default function IntegrationsPage() {
                   opacity: isSaveDisabled ? 0.6 : 1,
                 }}
               >
-                {enableMutation.isLoading ? "Saving..." : "Save"}
+                {enableMutation.isPending ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
