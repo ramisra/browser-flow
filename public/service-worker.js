@@ -1,5 +1,4 @@
-const TASK_API_BASE =
-  "https://localhost:3000/api/tasks".replace("https://", "http://");
+const TASK_API_BASE = "https://browser-flow-tdpn.vercel.app/api/tasks";
 
 const USER_GUEST_ID_KEY = "browser-flow-user-guest-id";
 
