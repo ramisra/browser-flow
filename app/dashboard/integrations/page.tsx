@@ -16,6 +16,7 @@ interface IntegrationCapability {
   id: string;
   name: string;
   description: string;
+  requires_api_key?: boolean;
 }
 
 interface IntegrationToken {
@@ -69,10 +70,14 @@ export default function IntegrationsPage() {
   });
 
   const enableMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedIntegration) {
-        throw new Error("No integration selected");
-      }
+    mutationFn: async (overrides?: {
+      integration: IntegrationCapability;
+      apiKey: string;
+      metadataValues: Record<string, string>;
+    }) => {
+      const integration = overrides?.integration ?? selectedIntegration!;
+      const key = overrides?.apiKey ?? apiKey;
+      const meta = overrides?.metadataValues ?? metadataValues;
 
       const res = await fetch("/api/integrations/tokens", {
         method: "POST",
@@ -81,9 +86,9 @@ export default function IntegrationsPage() {
           ...getUserGuestIdHeader(),
         },
         body: JSON.stringify({
-          integration_tool: selectedIntegration.id,
-          api_key: apiKey,
-          integration_metadata: metadataValues,
+          integration_tool: integration.id,
+          api_key: key,
+          integration_metadata: meta,
         }),
       });
 
@@ -163,10 +168,22 @@ export default function IntegrationsPage() {
   }, [apiKey, metadataFields, metadataValues, enableMutation.isLoading]);
 
   const handleEnable = (integration: IntegrationCapability) => {
-    setSelectedIntegration(integration);
     const defaults = getIntegrationMetadataDefaults(integration.id);
     const tokenMetadata = tokensByIntegration[integration.id]?.integration_metadata ?? {};
-    setMetadataValues({ ...defaults, ...tokenMetadata });
+    const metadata = { ...defaults, ...tokenMetadata };
+
+    if (integration.requires_api_key === false) {
+      // Direct enable without showing API key modal
+      enableMutation.mutate({
+        integration,
+        apiKey: "",
+        metadataValues: metadata,
+      });
+      return;
+    }
+
+    setSelectedIntegration(integration);
+    setMetadataValues(metadata);
     setApiKey("");
     setIsConfigModalOpen(true);
   };
@@ -183,18 +200,19 @@ export default function IntegrationsPage() {
       <div>
         <h1
           style={{
-            fontSize: "1.5rem",
+            fontSize: "clamp(1.5rem, 4vw, 2rem)",
             fontWeight: 700,
-            color: "var(--text-primary)",
+            color: "#fff",
             marginBottom: "var(--spacing-xs)",
+            letterSpacing: "-0.02em",
           }}
         >
           Integrations
         </h1>
         <p
           style={{
-            fontSize: "0.875rem",
-            color: "var(--text-muted)",
+            fontSize: "0.95rem",
+            color: "var(--landing-text-muted)",
           }}
         >
           Connect and manage your productivity tools
@@ -215,7 +233,7 @@ export default function IntegrationsPage() {
         </div>
       ) : capabilitiesError || tokensError ? (
         <div
-          className="card"
+          className="card-landing"
           style={{
             padding: "var(--spacing-xl)",
             textAlign: "center",
@@ -228,11 +246,11 @@ export default function IntegrationsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-xl)" }}>
           {enabledIntegrations.length === 0 && availableIntegrations.length === 0 ? (
             <div
-              className="card"
+              className="card-landing"
               style={{
                 padding: "var(--spacing-xl)",
                 textAlign: "center",
-                color: "var(--text-muted)",
+                color: "var(--landing-text-muted)",
               }}
             >
               No integrations available yet.
@@ -244,6 +262,7 @@ export default function IntegrationsPage() {
                   style={{
                     fontSize: "1.125rem",
                     fontWeight: 600,
+                    color: "var(--landing-text)",
                     marginBottom: "var(--spacing-sm)",
                   }}
                 >
@@ -251,10 +270,10 @@ export default function IntegrationsPage() {
                 </h2>
                 {enabledIntegrations.length === 0 ? (
                   <div
-                    className="card"
+                    className="card-landing"
                     style={{
                       padding: "var(--spacing-md)",
-                      color: "var(--text-muted)",
+                      color: "var(--landing-text-muted)",
                     }}
                   >
                     No integrations enabled yet.
@@ -287,6 +306,7 @@ export default function IntegrationsPage() {
                     style={{
                       fontSize: "1.125rem",
                       fontWeight: 600,
+                      color: "var(--landing-text)",
                       marginBottom: "var(--spacing-sm)",
                     }}
                   >
@@ -337,7 +357,7 @@ export default function IntegrationsPage() {
           >
             <p
               style={{
-                color: "var(--text-secondary)",
+                color: "var(--landing-text-muted)",
                 fontSize: "0.875rem",
               }}
             >
@@ -347,7 +367,7 @@ export default function IntegrationsPage() {
               <label
                 style={{
                   fontSize: "0.75rem",
-                  color: "var(--text-muted)",
+                  color: "var(--landing-text-muted)",
                   textTransform: "uppercase",
                   marginBottom: "var(--spacing-xs)",
                   display: "block",
@@ -364,9 +384,9 @@ export default function IntegrationsPage() {
                   width: "100%",
                   padding: "var(--spacing-sm) var(--spacing-md)",
                   borderRadius: "var(--radius-md)",
-                  border: "1px solid var(--border-color)",
-                  backgroundColor: "var(--bg-primary)",
-                  color: "var(--text-primary)",
+                  border: "1px solid rgba(148, 163, 184, 0.2)",
+                  backgroundColor: "var(--landing-bg)",
+                  color: "var(--landing-text)",
                 }}
               />
             </div>
@@ -375,7 +395,7 @@ export default function IntegrationsPage() {
                 <label
                   style={{
                     fontSize: "0.75rem",
-                    color: "var(--text-muted)",
+                    color: "var(--landing-text-muted)",
                     textTransform: "uppercase",
                     marginBottom: "var(--spacing-xs)",
                     display: "block",
@@ -397,9 +417,9 @@ export default function IntegrationsPage() {
                     width: "100%",
                     padding: "var(--spacing-sm) var(--spacing-md)",
                     borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--border-color)",
-                    backgroundColor: "var(--bg-primary)",
-                    color: "var(--text-primary)",
+                    border: "1px solid rgba(148, 163, 184, 0.2)",
+                    backgroundColor: "var(--landing-bg)",
+                    color: "var(--landing-text)",
                   }}
                 />
                 {field.helpText && (
@@ -428,31 +448,31 @@ export default function IntegrationsPage() {
                 marginTop: "var(--spacing-md)",
               }}
             >
-              <button
-                onClick={() => {
-                  setIsConfigModalOpen(false);
-                  setSelectedIntegration(null);
-                }}
-                style={{
-                  padding: "var(--spacing-sm) var(--spacing-md)",
-                  borderRadius: "var(--radius-md)",
-                  border: "1px solid var(--border-color)",
-                  backgroundColor: "transparent",
-                  color: "var(--text-secondary)",
-                  cursor: "pointer",
-                }}
-              >
-                Cancel
-              </button>
+            <button
+              onClick={() => {
+                setIsConfigModalOpen(false);
+                setSelectedIntegration(null);
+              }}
+              style={{
+                padding: "var(--spacing-sm) var(--spacing-md)",
+                borderRadius: "999px",
+                border: "1px solid rgba(148, 163, 184, 0.2)",
+                backgroundColor: "transparent",
+                color: "var(--landing-text-muted)",
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
               <button
                 onClick={() => enableMutation.mutate()}
                 disabled={isSaveDisabled}
                 style={{
                   padding: "var(--spacing-sm) var(--spacing-md)",
-                  borderRadius: "var(--radius-md)",
+                  borderRadius: "999px",
                   border: "none",
-                  background: "linear-gradient(135deg, #4f46e5, #22c55e, #f97316)",
-                  color: "var(--text-dark)",
+                  background: "var(--landing-accent)",
+                  color: "#0b0b14",
                   fontWeight: 600,
                   cursor: "pointer",
                   opacity: isSaveDisabled ? 0.6 : 1,

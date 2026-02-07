@@ -15,22 +15,22 @@ const statusConfig: Record<
 > = {
   completed: {
     color: "var(--status-success)",
-    bgColor: "rgba(34, 197, 94, 0.1)",
+    bgColor: "var(--status-success-tint)",
     label: "Completed",
   },
   processing: {
     color: "var(--status-processing)",
-    bgColor: "rgba(234, 179, 8, 0.1)",
+    bgColor: "var(--status-processing-tint)",
     label: "In Process",
   },
   failed: {
     color: "var(--status-error)",
-    bgColor: "rgba(239, 68, 68, 0.1)",
+    bgColor: "var(--status-error-tint)",
     label: "Failed",
   },
   pending: {
     color: "var(--text-muted)",
-    bgColor: "rgba(148, 163, 184, 0.1)",
+    bgColor: "var(--status-pending-tint)",
     label: "Pending",
   },
 };

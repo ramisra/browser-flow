@@ -1,10 +1,14 @@
 /**
  * User Guest ID Management
  * Handles generation, storage, and retrieval of X-User-Guest-ID for FastAPI requests.
- * Uses sessionStorage so the same ID is reused for the session (uniform across the device for that session).
+ * Uses sessionStorage so the same ID is reused for the session.
+ * Keeps dashboard sessionStorage and extension chrome.storage.local in sync via postMessage.
  */
 
-const USER_GUEST_ID_KEY = "browser-flow-user-guest-id";
+export const USER_GUEST_ID_KEY = "browser-flow-user-guest-id";
+
+const GUEST_ID_SYNC_TIMEOUT_MS = 500;
+const GUEST_ID_SYNC_EVENT = "browser-flow-guest-id-synced";
 
 /**
  * Generate a new UUID v4 (exported for server-side fallback when header is missing)
@@ -38,6 +42,17 @@ export function getUserGuestId(): string {
 }
 
 /**
+ * Set User Guest ID in sessionStorage (e.g. when syncing from extension).
+ */
+export function setUserGuestId(guestId: string): void {
+  if (typeof window === "undefined") return;
+  if (guestId?.trim()) {
+    sessionStorage.setItem(USER_GUEST_ID_KEY, guestId.trim());
+    window.dispatchEvent(new CustomEvent(GUEST_ID_SYNC_EVENT, { detail: { guestId: guestId.trim() } }));
+  }
+}
+
+/**
  * Generate a new User Guest ID and store it in sessionStorage
  */
 export function regenerateUserGuestId(): string {
@@ -47,8 +62,59 @@ export function regenerateUserGuestId(): string {
 
   const newId = generateUUID();
   sessionStorage.setItem(USER_GUEST_ID_KEY, newId);
+  syncGuestIdToExtension(newId);
   return newId;
 }
+
+/**
+ * Tell the extension (via content script postMessage) to store this guest ID
+ * so extension and dashboard stay in sync. Call after regenerating or when dashboard has the ID first.
+ */
+export function syncGuestIdToExtension(guestId: string): void {
+  if (typeof window === "undefined" || !guestId?.trim()) return;
+  window.postMessage(
+    { type: "BROWSER_FLOW_SYNC_GUEST_ID", guestId: guestId.trim() },
+    window.location.origin
+  );
+}
+
+/**
+ * Sync guest ID with the extension on dashboard load:
+ * - If dashboard has a guest ID in sessionStorage, push it to the extension.
+ * - Ask the extension for its guest ID; if we get one, set sessionStorage and dispatch event.
+ * - If no response (no extension), create/store one locally as before.
+ */
+export function initGuestIdSync(): void {
+  if (typeof window === "undefined") return;
+
+  const existing = sessionStorage.getItem(USER_GUEST_ID_KEY);
+  if (existing) {
+    window.postMessage(
+      { type: "BROWSER_FLOW_SYNC_GUEST_ID", guestId: existing },
+      window.location.origin
+    );
+  }
+
+  const handleResponse = (event: MessageEvent) => {
+    const data = event.data;
+    if (data?.type === "BROWSER_FLOW_GUEST_ID_RESPONSE" && data.guestId) {
+      window.removeEventListener("message", handleResponse);
+      setUserGuestId(data.guestId);
+    }
+  };
+  window.addEventListener("message", handleResponse);
+  window.postMessage({ type: "BROWSER_FLOW_GET_GUEST_ID" }, window.location.origin);
+
+  setTimeout(() => {
+    window.removeEventListener("message", handleResponse);
+    if (!sessionStorage.getItem(USER_GUEST_ID_KEY)) {
+      getUserGuestId();
+    }
+  }, GUEST_ID_SYNC_TIMEOUT_MS);
+}
+
+/** Event name for when guest ID was synced (e.g. from extension). Components can listen to refresh. */
+export const GUEST_ID_SYNC_EVENT_NAME = GUEST_ID_SYNC_EVENT;
 
 /**
  * Get User Guest ID header for API requests (client-side only).

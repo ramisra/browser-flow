@@ -64,7 +64,7 @@ export default function Modal({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        backgroundColor: "var(--overlay-bg)",
         backdropFilter: "blur(4px)",
       }}
       onClick={onClose}
@@ -73,11 +73,11 @@ export default function Modal({
         style={{
           width: "90%",
           maxWidth: size === "sm" ? "28rem" : size === "md" ? "32rem" : size === "lg" ? "42rem" : "56rem",
-          backgroundColor: "var(--bg-card)",
-          borderRadius: "var(--radius-xl)",
+          backgroundColor: "var(--landing-bg-card)",
+          borderRadius: "1.25rem",
           padding: "var(--spacing-xl)",
-          boxShadow: "var(--shadow-lg)",
-          border: "1px solid var(--border-color)",
+          boxShadow: "0 20px 50px rgba(0, 0, 0, 0.4)",
+          border: "1px solid rgba(148, 163, 184, 0.08)",
           backdropFilter: "blur(18px)",
           maxHeight: "90vh",
           overflow: "auto",
@@ -97,7 +97,7 @@ export default function Modal({
               style={{
                 fontSize: "1.25rem",
                 fontWeight: 700,
-                color: "var(--text-primary)",
+                color: "var(--landing-text)",
               }}
             >
               {title}
@@ -110,20 +110,20 @@ export default function Modal({
                 justifyContent: "center",
                 width: "32px",
                 height: "32px",
-                borderRadius: "var(--radius-md)",
+                borderRadius: "999px",
                 border: "none",
                 backgroundColor: "transparent",
-                color: "var(--text-muted)",
+                color: "var(--landing-text-muted)",
                 cursor: "pointer",
                 transition: "all var(--transition-base)",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "var(--bg-primary)";
-                e.currentTarget.style.color = "var(--text-primary)";
+                e.currentTarget.style.backgroundColor = "rgba(148, 163, 184, 0.1)";
+                e.currentTarget.style.color = "var(--landing-text)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = "var(--text-muted)";
+                e.currentTarget.style.color = "var(--landing-text-muted)";
               }}
             >
               <X size={20} />

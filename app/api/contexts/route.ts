@@ -64,7 +64,7 @@ export async function GET(req: Request) {
     const data = await resp.json();
     return NextResponse.json(data, { status: resp.status });
   } catch (error) {
-    console.error("[Browser Flo] Error calling FastAPI backend", error);
+    console.error("[Browser Flow] Error calling FastAPI backend", error);
     return NextResponse.json(
       { error: "Failed to reach FastAPI backend" },
       { status: 502 },

@@ -1,8 +1,38 @@
 /**
  * Content script for Browser Flow
  * Handles injecting modal dialogs for adding selected text to context
+ * and syncing guest ID between dashboard (sessionStorage) and extension (chrome.storage.local)
  */
 console.log("[Browser Flow] content script loaded on", window.location.href);
+
+// Allowed origins for guest ID sync (dashboard)
+const DASHBOARD_ORIGIN_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+function isDashboardOrigin(origin) {
+  return origin && DASHBOARD_ORIGIN_PATTERN.test(origin);
+}
+
+// Listen for messages from the page (dashboard) to get/set guest ID
+window.addEventListener("message", (event) => {
+  if (!isDashboardOrigin(event.origin)) return;
+  const { type, guestId } = event.data || {};
+  if (type === "BROWSER_FLOW_GET_GUEST_ID") {
+    chrome.runtime.sendMessage({ type: "GET_GUEST_ID" }, (response) => {
+      const id = response?.guestId || null;
+      event.source?.postMessage(
+        { type: "BROWSER_FLOW_GUEST_ID_RESPONSE", guestId: id },
+        event.origin
+      );
+    });
+  } else if (type === "BROWSER_FLOW_SYNC_GUEST_ID" && typeof guestId === "string" && guestId.trim()) {
+    chrome.runtime.sendMessage({ type: "SET_GUEST_ID", guestId: guestId.trim() }, (response) => {
+      event.source?.postMessage(
+        { type: "BROWSER_FLOW_SYNC_GUEST_ID_RESPONSE", ok: !!response?.ok },
+        event.origin
+      );
+    });
+  }
+});
 
 // Listen for messages from service worker
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -54,7 +84,7 @@ function showContextDialog(data) {
 
   // Title
   const title = document.createElement("h2");
-  title.textContent = "Add Selection to Browser Flow";
+  title.textContent = "Initiate Browser Flow";
   title.style.cssText = `
     font-size: 18px;
     margin: 0 0 16px;
@@ -88,7 +118,7 @@ function showContextDialog(data) {
 
   // Label
   const label = document.createElement("label");
-  label.textContent = "Your thoughts (optional)";
+  label.textContent = "Describe your task - add the note to notion, extract the data and save it to lead sheet. (optional)";
   label.style.cssText = `
     font-size: 12px;
     display: block;
@@ -162,7 +192,7 @@ function showContextDialog(data) {
 
   // Submit button
   const submitBtn = document.createElement("button");
-  submitBtn.textContent = "Add to Context";
+  submitBtn.textContent = "Initate your Flow";
   submitBtn.style.cssText = `
     flex: 1;
     border-radius: 999px;
@@ -171,7 +201,7 @@ function showContextDialog(data) {
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    background: linear-gradient(135deg, #4f46e5, #22c55e, #f97316);
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
     color: #ffffff;
     font-family: inherit;
   `;

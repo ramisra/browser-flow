@@ -5,35 +5,50 @@
     <title>Browser Flow</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
+      /* Dashboard theme – matches app/globals.css landing variables */
+      :root {
+        --landing-bg: #0b0b14;
+        --landing-bg-card: rgba(30, 27, 48, 0.7);
+        --landing-text: #f1f5f9;
+        --landing-text-muted: #94a3b8;
+        --landing-accent: #a78bfa;
+        --landing-accent-glow: rgba(167, 139, 250, 0.35);
+        --border-light: rgba(148, 163, 184, 0.2);
+        --border-card: rgba(148, 163, 184, 0.08);
+        --radius-card: 1.25rem;
+        --radius-pill: 999px;
+      }
       body {
         margin: 0;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-          sans-serif;
+          "Inter", "Segoe UI", sans-serif;
         width: 320px;
         min-height: 360px;
-        background: radial-gradient(circle at top left, #dbeafe, transparent 60%),
-          radial-gradient(circle at bottom right, #dcfce7, transparent 55%),
-          #ffffff;
-        color: #1e293b;
+        background: radial-gradient(ellipse 80% 50% at 50% -20%, var(--landing-accent-glow), transparent),
+          var(--landing-bg);
+        color: var(--landing-text);
+        -webkit-font-smoothing: antialiased;
       }
       .card {
         margin: 12px;
         padding: 14px 14px 16px;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.98);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08),
-          0 0 0 1px rgba(148, 163, 184, 0.2);
-        backdrop-filter: blur(18px);
+        border-radius: var(--radius-card);
+        background: var(--landing-bg-card);
+        border: 1px solid var(--border-card);
+        box-shadow: 0 8px 30px rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
       }
       h1 {
         font-size: 16px;
         margin: 0 0 4px;
-        color: #1e293b;
+        font-weight: 700;
+        color: var(--landing-text);
       }
       p {
         margin: 0 0 10px;
         font-size: 12px;
-        color: #475569;
+        color: var(--landing-text-muted);
       }
       select,
       button,
@@ -47,29 +62,47 @@
         box-sizing: border-box;
       }
       select {
-        background: #ffffff;
-        color: #1e293b;
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 999px;
+        background: var(--landing-bg);
+        color: var(--landing-text);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-pill);
       }
       textarea {
-        background: #ffffff;
-        color: #1e293b;
-        border: 1px solid rgba(148, 163, 184, 0.3);
+        background: var(--landing-bg);
+        color: var(--landing-text);
+        border: 1px solid var(--border-light);
         resize: vertical;
         min-height: 60px;
         margin-top: 10px;
+        border-radius: 0.75rem;
       }
       textarea::placeholder {
-        color: #94a3b8;
+        color: var(--landing-text-muted);
+      }
+      textarea:focus {
+        outline: none;
+        border-color: var(--landing-accent);
+        box-shadow: 0 0 0 3px var(--landing-accent-glow);
       }
       button {
         margin-top: 10px;
-        background: linear-gradient(135deg, #4f46e5, #22c55e, #f97316);
-        color: #ffffff;
+        background: linear-gradient(135deg, var(--landing-accent) 0%, #7c3aed 100%);
+        color: #fff;
         font-weight: 600;
         cursor: pointer;
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
+        box-shadow: 0 4px 20px var(--landing-accent-glow);
+        transition: opacity 0.2s ease, transform 0.15s ease;
+      }
+      button:hover {
+        opacity: 0.95;
+        transform: translateY(-1px);
+      }
+      button:active {
+        transform: translateY(0);
+      }
+      label {
+        color: var(--landing-text-muted);
       }
       .status {
         margin-top: 8px;
@@ -77,10 +110,10 @@
         min-height: 14px;
       }
       .status-ok {
-        color: #16a34a;
+        color: #22c55e;
       }
       .status-error {
-        color: #dc2626;
+        color: #ef4444;
       }
     </style>
   </head>

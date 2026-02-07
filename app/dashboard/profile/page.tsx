@@ -1,15 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { User, Calendar, CreditCard, BarChart3, RefreshCw, Copy, Check } from "lucide-react";
-import { getUserGuestId, getUserGuestIdHeader, regenerateUserGuestId } from "@/lib/user-guest-id";
+import { User, Calendar, CreditCard, RefreshCw, Copy, Check } from "lucide-react";
+import { getUserGuestId, getUserGuestIdHeader, regenerateUserGuestId, GUEST_ID_SYNC_EVENT_NAME } from "@/lib/user-guest-id";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function ProfilePage() {
   const [copied, setCopied] = useState(false);
   const [userGuestId, setUserGuestId] = useState(getUserGuestId());
+
+  useEffect(() => {
+    const onSynced = () => setUserGuestId(getUserGuestId());
+    window.addEventListener(GUEST_ID_SYNC_EVENT_NAME, onSynced);
+    return () => window.removeEventListener(GUEST_ID_SYNC_EVENT_NAME, onSynced);
+  }, []);
 
   const {
     data: profileData,
@@ -62,18 +68,19 @@ export default function ProfilePage() {
         <div>
           <h1
             style={{
-              fontSize: "1.5rem",
+              fontSize: "clamp(1.5rem, 4vw, 2rem)",
               fontWeight: 700,
-              color: "var(--text-primary)",
+              color: "#fff",
               marginBottom: "var(--spacing-xs)",
+              letterSpacing: "-0.02em",
             }}
           >
             Profile
           </h1>
           <p
             style={{
-              fontSize: "0.875rem",
-              color: "var(--text-muted)",
+              fontSize: "0.95rem",
+              color: "var(--landing-text-muted)",
             }}
           >
             Manage your account and preferences
@@ -86,19 +93,19 @@ export default function ProfilePage() {
             alignItems: "center",
             gap: "var(--spacing-sm)",
             padding: "var(--spacing-sm) var(--spacing-md)",
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--border-color)",
-            backgroundColor: "var(--bg-card)",
-            color: "var(--text-primary)",
+            borderRadius: "999px",
+            border: "1px solid rgba(148, 163, 184, 0.2)",
+            backgroundColor: "var(--landing-bg-card)",
+            color: "var(--landing-text)",
             cursor: "pointer",
             fontSize: "0.875rem",
             transition: "all var(--transition-base)",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--bg-primary)";
+            e.currentTarget.style.backgroundColor = "rgba(148, 163, 184, 0.1)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--bg-card)";
+            e.currentTarget.style.backgroundColor = "var(--landing-bg-card)";
           }}
         >
           <RefreshCw size={16} />
@@ -119,7 +126,7 @@ export default function ProfilePage() {
         </div>
       ) : error ? (
         <div
-          className="card"
+          className="card-landing"
           style={{
             padding: "var(--spacing-xl)",
             textAlign: "center",
@@ -137,7 +144,7 @@ export default function ProfilePage() {
           }}
         >
           {/* User Details Card */}
-          <div className="card">
+          <div className="card-landing">
             <div
               style={{
                 display: "flex",
@@ -151,11 +158,11 @@ export default function ProfilePage() {
                   width: "48px",
                   height: "48px",
                   borderRadius: "50%",
-                  backgroundColor: "var(--accent-blue)",
+                  backgroundColor: "var(--landing-accent)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "white",
+                  color: "#0b0b14",
                 }}
               >
                 <User size={24} />
@@ -165,7 +172,7 @@ export default function ProfilePage() {
                   style={{
                     fontSize: "1rem",
                     fontWeight: 600,
-                    color: "var(--text-primary)",
+                    color: "var(--landing-text)",
                   }}
                 >
                   {profileData?.displayName || "User"}
@@ -173,7 +180,7 @@ export default function ProfilePage() {
                 <p
                   style={{
                     fontSize: "0.875rem",
-                    color: "var(--text-muted)",
+                    color: "var(--landing-text-muted)",
                   }}
                 >
                   User Account
@@ -192,7 +199,7 @@ export default function ProfilePage() {
                 <label
                   style={{
                     fontSize: "0.75rem",
-                    color: "var(--text-muted)",
+                    color: "var(--landing-text-muted)",
                     textTransform: "uppercase",
                     marginBottom: "var(--spacing-xs)",
                     display: "block",
@@ -212,11 +219,11 @@ export default function ProfilePage() {
                       flex: 1,
                       padding: "var(--spacing-sm) var(--spacing-md)",
                       borderRadius: "var(--radius-md)",
-                      backgroundColor: "var(--bg-primary)",
-                      color: "var(--text-secondary)",
+                      backgroundColor: "var(--landing-bg)",
+                      color: "var(--landing-text)",
                       fontSize: "0.75rem",
-                      border: "1px solid var(--border-color)",
-                      fontFamily: "monospace",
+                      border: "1px solid rgba(148, 163, 184, 0.2)",
+                      fontFamily: "var(--font-mono)",
                     }}
                   >
                     {userGuestId}
@@ -267,7 +274,7 @@ export default function ProfilePage() {
                   <label
                     style={{
                       fontSize: "0.75rem",
-                      color: "var(--text-muted)",
+                      color: "var(--landing-text-muted)",
                       textTransform: "uppercase",
                       marginBottom: "var(--spacing-xs)",
                       display: "block",
@@ -280,7 +287,7 @@ export default function ProfilePage() {
                       display: "flex",
                       alignItems: "center",
                       gap: "var(--spacing-sm)",
-                      color: "var(--text-secondary)",
+                      color: "var(--landing-text)",
                       fontSize: "0.875rem",
                     }}
                   >
@@ -295,7 +302,7 @@ export default function ProfilePage() {
                   <label
                     style={{
                       fontSize: "0.75rem",
-                      color: "var(--text-muted)",
+                      color: "var(--landing-text-muted)",
                       textTransform: "uppercase",
                       marginBottom: "var(--spacing-xs)",
                       display: "block",
@@ -308,7 +315,7 @@ export default function ProfilePage() {
                       display: "flex",
                       alignItems: "center",
                       gap: "var(--spacing-sm)",
-                      color: "var(--text-secondary)",
+                      color: "var(--landing-text)",
                       fontSize: "0.875rem",
                     }}
                   >
@@ -321,7 +328,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Subscription Card */}
-          <div className="card">
+          <div className="card-landing">
             <div
               style={{
                 display: "flex",
@@ -334,12 +341,12 @@ export default function ProfilePage() {
                 style={{
                   width: "48px",
                   height: "48px",
-                  borderRadius: "var(--radius-md)",
-                  backgroundColor: "rgba(59, 130, 246, 0.1)",
+                  borderRadius: "50%",
+                  backgroundColor: "var(--landing-accent-glow)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "var(--accent-blue)",
+                  color: "var(--landing-accent)",
                 }}
               >
                 <CreditCard size={24} />
@@ -349,7 +356,7 @@ export default function ProfilePage() {
                   style={{
                     fontSize: "1rem",
                     fontWeight: 600,
-                    color: "var(--text-primary)",
+                    color: "var(--landing-text)",
                   }}
                 >
                   Subscription
@@ -357,7 +364,7 @@ export default function ProfilePage() {
                 <p
                   style={{
                     fontSize: "0.875rem",
-                    color: "var(--text-muted)",
+                    color: "var(--landing-text-muted)",
                   }}
                 >
                   {profileData?.subscription?.plan || "Free"} Plan
@@ -376,15 +383,15 @@ export default function ProfilePage() {
                 style={{
                   padding: "var(--spacing-md)",
                   borderRadius: "var(--radius-md)",
-                  backgroundColor: "var(--bg-primary)",
-                  border: "1px solid var(--border-color)",
+                  backgroundColor: "var(--landing-bg)",
+                  border: "1px solid rgba(148, 163, 184, 0.12)",
                 }}
               >
                 <div
                   style={{
                     fontSize: "1.5rem",
                     fontWeight: 700,
-                    color: "var(--text-primary)",
+                    color: "var(--landing-text)",
                     marginBottom: "var(--spacing-xs)",
                   }}
                 >
@@ -393,7 +400,7 @@ export default function ProfilePage() {
                 <p
                   style={{
                     fontSize: "0.875rem",
-                    color: "var(--text-muted)",
+                    color: "var(--landing-text-muted)",
                   }}
                 >
                   Current plan
@@ -405,7 +412,7 @@ export default function ProfilePage() {
                   <label
                     style={{
                       fontSize: "0.75rem",
-                      color: "var(--text-muted)",
+                      color: "var(--landing-text-muted)",
                       textTransform: "uppercase",
                       marginBottom: "var(--spacing-xs)",
                       display: "block",
@@ -415,7 +422,7 @@ export default function ProfilePage() {
                   </label>
                   <p
                     style={{
-                      color: "var(--text-secondary)",
+                      color: "var(--landing-text)",
                       fontSize: "0.875rem",
                     }}
                   >
@@ -426,149 +433,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Usage Statistics Card */}
-          <div className="card">
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--spacing-md)",
-                marginBottom: "var(--spacing-lg)",
-              }}
-            >
-              <div
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "var(--radius-md)",
-                  backgroundColor: "rgba(34, 197, 94, 0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "var(--accent-green)",
-                }}
-              >
-                <BarChart3 size={24} />
-              </div>
-              <div>
-                <h3
-                  style={{
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  Usage Statistics
-                </h3>
-                <p
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--text-muted)",
-                  }}
-                >
-                  Your activity overview
-                </p>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--spacing-md)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "var(--spacing-md)",
-                  borderRadius: "var(--radius-md)",
-                  backgroundColor: "var(--bg-primary)",
-                  border: "1px solid var(--border-color)",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--text-secondary)",
-                  }}
-                >
-                  Total Tasks
-                </span>
-                <span
-                  style={{
-                    fontSize: "1.25rem",
-                    fontWeight: 700,
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {profileData?.subscription?.usage?.totalTasks || 0}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "var(--spacing-md)",
-                  borderRadius: "var(--radius-md)",
-                  backgroundColor: "var(--bg-primary)",
-                  border: "1px solid var(--border-color)",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--text-secondary)",
-                  }}
-                >
-                  Total Contexts
-                </span>
-                <span
-                  style={{
-                    fontSize: "1.25rem",
-                    fontWeight: 700,
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {profileData?.subscription?.usage?.totalContexts || 0}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "var(--spacing-md)",
-                  borderRadius: "var(--radius-md)",
-                  backgroundColor: "var(--bg-primary)",
-                  border: "1px solid var(--border-color)",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--text-secondary)",
-                  }}
-                >
-                  Active Integrations
-                </span>
-                <span
-                  style={{
-                    fontSize: "1.25rem",
-                    fontWeight: 700,
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {profileData?.subscription?.usage?.activeIntegrations || 0}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>

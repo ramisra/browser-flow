@@ -24,11 +24,11 @@ export default function IntegrationCard({
 }: IntegrationCardProps) {
   const isEnabled = status === "enabled";
   const statusLabel = isEnabled ? "Enabled" : "Available";
-  const statusColor = isEnabled ? "var(--status-success)" : "var(--text-muted)";
+  const statusColor = isEnabled ? "var(--status-success)" : "var(--landing-text-muted)";
 
   return (
     <div
-      className="card"
+      className="card-landing"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -54,20 +54,20 @@ export default function IntegrationCard({
               justifyContent: "center",
               width: "32px",
               height: "32px",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--border-color)",
+              borderRadius: "999px",
+              border: "1px solid rgba(148, 163, 184, 0.2)",
               backgroundColor: "transparent",
-              color: "var(--text-muted)",
+              color: "var(--landing-text-muted)",
               cursor: "pointer",
               transition: "all var(--transition-base)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "var(--bg-primary)";
-              e.currentTarget.style.color = "var(--text-primary)";
+              e.currentTarget.style.backgroundColor = "rgba(148, 163, 184, 0.1)";
+              e.currentTarget.style.color = "var(--landing-text)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = "transparent";
-              e.currentTarget.style.color = "var(--text-muted)";
+              e.currentTarget.style.color = "var(--landing-text-muted)";
             }}
           >
             <Settings size={16} />
@@ -90,11 +90,11 @@ export default function IntegrationCard({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              borderRadius: "var(--radius-md)",
+              borderRadius: "50%",
               backgroundColor: isEnabled
-                ? "rgba(59, 130, 246, 0.1)"
-                : "var(--bg-primary)",
-              color: isEnabled ? "var(--accent-blue)" : "var(--text-muted)",
+                ? "var(--landing-accent-glow)"
+                : "var(--landing-bg)",
+              color: isEnabled ? "var(--landing-accent)" : "var(--landing-text-muted)",
             }}
           >
             {icon}
@@ -105,7 +105,7 @@ export default function IntegrationCard({
             style={{
               fontSize: "1rem",
               fontWeight: 600,
-              color: "var(--text-primary)",
+              color: "var(--landing-text)",
               marginBottom: "0.25rem",
             }}
           >
@@ -115,7 +115,7 @@ export default function IntegrationCard({
             <p
               style={{
                 fontSize: "0.875rem",
-                color: "var(--text-muted)",
+                color: "var(--landing-text-muted)",
               }}
             >
               {description}
@@ -148,7 +148,7 @@ export default function IntegrationCard({
               height: "24px",
               borderRadius: "var(--radius-full)",
               border: "none",
-              backgroundColor: isEnabled ? "var(--accent-blue)" : "var(--border-color-dark)",
+              backgroundColor: isEnabled ? "var(--landing-accent)" : "rgba(148, 163, 184, 0.3)",
               cursor: "pointer",
               transition: "all var(--transition-base)",
               padding: "2px",
@@ -162,9 +162,9 @@ export default function IntegrationCard({
                 width: "20px",
                 height: "20px",
                 borderRadius: "50%",
-                backgroundColor: "white",
+                backgroundColor: isEnabled ? "#0b0b14" : "var(--landing-text)",
                 transition: "left var(--transition-base)",
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                boxShadow: "var(--shadow-sm)",
               }}
             />
           </button>
@@ -173,14 +173,23 @@ export default function IntegrationCard({
           <button
             onClick={onEnable}
             style={{
-              padding: "6px 12px",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--border-color)",
+              padding: "6px 14px",
+              borderRadius: "999px",
+              border: "1px solid var(--landing-accent-glow)",
               backgroundColor: "transparent",
-              color: "var(--text-primary)",
+              color: "var(--landing-accent)",
               cursor: "pointer",
               fontSize: "0.875rem",
               fontWeight: 600,
+              transition: "all var(--transition-base)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--landing-accent)";
+              e.currentTarget.style.color = "#0b0b14";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+              e.currentTarget.style.color = "var(--landing-accent)";
             }}
           >
             Enable

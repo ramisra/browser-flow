@@ -21,11 +21,20 @@ async function getOrCreateGuestId() {
   return guestId;
 }
 
+/** Store a guest ID from the dashboard so extension and dashboard stay in sync */
+async function setGuestId(guestId) {
+  if (typeof guestId === "string" && guestId.trim().length > 0) {
+    await chrome.storage.local.set({ [USER_GUEST_ID_KEY]: guestId.trim() });
+    return true;
+  }
+  return false;
+}
+
 // Create context menu on extension install
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "addSelectionToContext",
-    title: "Add selection to Browser Flo",
+    title: "Add selection to Browser Flow",
     contexts: ["selection"],
   });
 });
@@ -53,8 +62,8 @@ async function pollTaskStatus(taskId) {
       if (data.status === "completed" || data.status === "failed") {
         const title =
           data.status === "completed"
-            ? "Browser Flo task completed"
-            : "Browser Flo task failed";
+            ? "Browser Flow task completed"
+            : "Browser Flow task failed";
         const message =
           data.status === "completed"
             ? data.result?.message ||
@@ -71,7 +80,7 @@ async function pollTaskStatus(taskId) {
       }
     } catch (e) {
       // ignore transient errors; we retry
-      console.warn("[Browser Flo] Poll error", e);
+      console.warn("[Browser Flow] Poll error", e);
     }
   }
 }
@@ -81,19 +90,19 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === "addSelectionToContext") {
     const selectedText = info.selectionText;
     
-    console.log("[Browser Flo] Context menu clicked", {
+    console.log("[Browser Flow] Context menu clicked", {
       selectionText: selectedText,
       tabUrl: tab?.url,
       info: info,
     });
     
     if (!selectedText) {
-      console.error("[Browser Flo] No selection text available");
+      console.error("[Browser Flow] No selection text available");
       return;
     }
     
     if (!tab) {
-      console.error("[Browser Flo] No tab available");
+      console.error("[Browser Flow] No tab available");
       return;
     }
 
@@ -106,9 +115,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           tabTitle: tab.title || null,
         },
       });
-      console.log("[Browser Flo] Sent message to content script to show dialog");
+      console.log("[Browser Flow] Sent message to content script to show dialog");
     } catch (e) {
-      console.error("[Browser Flo] Error sending message to content script", e);
+      console.error("[Browser Flow] Error sending message to content script", e);
       // Fallback: inject content script if not already loaded
       try {
         await chrome.scripting.executeScript({
@@ -124,7 +133,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           },
         });
       } catch (fallbackError) {
-        console.error("[Browser Flo] Fallback also failed", fallbackError);
+        console.error("[Browser Flow] Fallback also failed", fallbackError);
         // Final fallback: send directly without dialog
         await sendSelectedTextToBackend(selectedText, tab.title || null);
       }
@@ -142,7 +151,7 @@ async function sendSelectedTextToBackend(selectedText, tabTitle, userContext = n
       payload.userContext = userContext;
     }
 
-    console.log("[Browser Flo] Sending payload:", payload);
+    console.log("[Browser Flow] Sending payload:", payload);
 
     const guestId = await getOrCreateGuestId();
     const resp = await fetch(TASK_API_BASE, {
@@ -155,22 +164,30 @@ async function sendSelectedTextToBackend(selectedText, tabTitle, userContext = n
     });
 
     if (!resp.ok) {
-      console.error("[Browser Flo] Failed to create task");
+      console.error("[Browser Flow] Failed to create task");
       return;
     }
 
     const data = await resp.json();
     if (data.id) {
       pollTaskStatus(data.id).catch((e) =>
-        console.error("[Browser Flo] Polling failed", e),
+        console.error("[Browser Flow] Polling failed", e),
       );
     }
   } catch (e) {
-    console.error("[Browser Flo] Error talking to API", e);
+    console.error("[Browser Flow] Error talking to API", e);
   }
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "GET_GUEST_ID") {
+    getOrCreateGuestId().then((guestId) => sendResponse({ guestId }));
+    return true;
+  }
+  if (message.type === "SET_GUEST_ID") {
+    setGuestId(message.guestId).then((ok) => sendResponse({ ok }));
+    return true;
+  }
   if (message.type === "START_TASK") {
     (async () => {
       try {
@@ -207,13 +224,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const data = await resp.json();
         if (data.id) {
           pollTaskStatus(data.id).catch((e) =>
-            console.error("[Browser Flo] Polling failed", e),
+            console.error("[Browser Flow] Polling failed", e),
           );
         }
 
         sendResponse({ ok: true, taskId: data.id });
       } catch (e) {
-        console.error("[Browser Flo] Error talking to API", e);
+        console.error("[Browser Flow] Error talking to API", e);
         sendResponse({ ok: false, error: String(e) });
       }
     })();

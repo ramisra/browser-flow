@@ -10,6 +10,7 @@ import {
   User,
   Menu,
   X,
+  Sparkles,
 } from "lucide-react";
 
 interface NavItem {
@@ -45,11 +46,12 @@ export default function Sidebar() {
           justifyContent: "center",
           width: "40px",
           height: "40px",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--border-color)",
-          backgroundColor: "var(--bg-card)",
-          color: "var(--text-primary)",
+          borderRadius: "999px",
+          border: "1px solid rgba(148, 163, 184, 0.2)",
+          backgroundColor: "var(--landing-bg-card)",
+          color: "var(--landing-text)",
           cursor: "pointer",
+          backdropFilter: "blur(12px)",
         }}
         className="mobile-menu-button"
       >
@@ -64,13 +66,14 @@ export default function Sidebar() {
           top: 0,
           height: "100vh",
           width: "260px",
-          backgroundColor: "var(--bg-sidebar)",
-          borderRight: "1px solid var(--border-color)",
+          backgroundColor: "var(--landing-bg-card)",
+          borderRight: "1px solid rgba(148, 163, 184, 0.12)",
           padding: "var(--spacing-lg)",
           overflowY: "auto",
           zIndex: 1000,
           transform: isMobileOpen ? "translateX(0)" : "translateX(-100%)",
           transition: "transform var(--transition-base)",
+          backdropFilter: "blur(12px)",
         }}
         className="sidebar"
       >
@@ -79,14 +82,14 @@ export default function Sidebar() {
           style={{
             marginBottom: "var(--spacing-2xl)",
             paddingBottom: "var(--spacing-lg)",
-            borderBottom: "1px solid var(--border-color)",
+            borderBottom: "1px solid rgba(148, 163, 184, 0.12)",
           }}
         >
           <h1
             style={{
               fontSize: "1.25rem",
               fontWeight: 700,
-              color: "var(--text-primary)",
+              color: "var(--landing-text)",
               display: "flex",
               alignItems: "center",
               gap: "var(--spacing-sm)",
@@ -97,31 +100,26 @@ export default function Sidebar() {
                 width: "32px",
                 height: "32px",
                 borderRadius: "var(--radius-md)",
-                background: "#3b82f6",
+                background: "var(--landing-accent)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "white",
-                fontWeight: 700,
+                color: "#0b0b14",
               }}
             >
-              BF
+              <Sparkles size={18} strokeWidth={2} />
             </span>
             Browser Flow
           </h1>
         </div>
 
         {/* Menu Heading */}
-        <div
-          style={{
-            marginBottom: "var(--spacing-md)",
-          }}
-        >
+        <div style={{ marginBottom: "var(--spacing-md)" }}>
           <p
             style={{
               fontSize: "0.75rem",
               fontWeight: 600,
-              color: "var(--text-muted)",
+              color: "var(--landing-text-muted)",
               textTransform: "uppercase",
               letterSpacing: "0.05em",
             }}
@@ -150,10 +148,10 @@ export default function Sidebar() {
                   alignItems: "center",
                   gap: "var(--spacing-md)",
                   padding: "var(--spacing-md)",
-                  borderRadius: "var(--radius-md)",
-                  color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+                  borderRadius: "999px",
+                  color: isActive ? "#0b0b14" : "var(--landing-text)",
                   backgroundColor: isActive
-                    ? "var(--accent-blue)"
+                    ? "var(--landing-accent)"
                     : "transparent",
                   textDecoration: "none",
                   transition: "all var(--transition-base)",
@@ -161,7 +159,7 @@ export default function Sidebar() {
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
-                    e.currentTarget.style.backgroundColor = "#f8fafc";
+                    e.currentTarget.style.backgroundColor = "rgba(148, 163, 184, 0.1)";
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -174,7 +172,7 @@ export default function Sidebar() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    color: isActive ? "white" : "var(--text-secondary)",
+                    color: isActive ? "#0b0b14" : "var(--landing-text-muted)",
                   }}
                 >
                   {item.icon}
@@ -195,8 +193,8 @@ export default function Sidebar() {
                       fontWeight: 600,
                       padding: "0.125rem 0.375rem",
                       borderRadius: "var(--radius-full)",
-                      backgroundColor: "var(--status-success)",
-                      color: "white",
+                      backgroundColor: "var(--landing-accent)",
+                      color: "#0b0b14",
                     }}
                   >
                     {item.badge}
@@ -215,7 +213,7 @@ export default function Sidebar() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.3)",
+            backgroundColor: "var(--overlay-bg-light)",
             zIndex: 999,
           }}
           className="mobile-overlay"

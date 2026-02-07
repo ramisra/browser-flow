@@ -1,19 +1,26 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import { initGuestIdSync } from "@/lib/user-guest-id";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    initGuestIdSync();
+  }, []);
+
   return (
     <div
       style={{
         display: "flex",
         minHeight: "100vh",
-        backgroundColor: "var(--bg-primary)",
+        background:
+          "radial-gradient(ellipse 80% 50% at 50% -20%, var(--landing-accent-glow), transparent), var(--landing-bg)",
+        color: "var(--landing-text)",
       }}
     >
       <Sidebar />

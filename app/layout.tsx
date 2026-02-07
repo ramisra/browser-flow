@@ -3,8 +3,9 @@ import "./globals.css";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: "Browser Flow",
-  description: "Capture browsing context and send it to your AI backend.",
+  title: "Browser Flow — Stop switching apps. Start staying in flow.",
+  description:
+    "AI agents turn your browsing into organized work across your productivity stack. Smart Tab Orchestra, Productivity Hub, Universal Workspace, Intent-to-Action Automation.",
 };
 
 export default function RootLayout({

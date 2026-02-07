@@ -224,21 +224,22 @@ export default function KnowledgePage() {
         <div>
           <h1
             style={{
-              fontSize: "1.5rem",
+              fontSize: "clamp(1.5rem, 4vw, 2rem)",
               fontWeight: 700,
-              color: "var(--text-primary)",
+              color: "#fff",
               marginBottom: "var(--spacing-xs)",
+              letterSpacing: "-0.02em",
             }}
           >
             Knowledge Base
           </h1>
           <p
             style={{
-              fontSize: "0.875rem",
-              color: "var(--text-muted)",
+              fontSize: "0.95rem",
+              color: "var(--landing-text-muted)",
             }}
           >
-            Explore root nodes and their related context graph
+            Explore context graph and related knowledge
           </p>
         </div>
       </div>
@@ -257,7 +258,7 @@ export default function KnowledgePage() {
         </div>
       ) : graphError ? (
         <div
-          className="card"
+          className="card-landing"
           style={{
             padding: "var(--spacing-xl)",
             textAlign: "center",
@@ -281,7 +282,7 @@ export default function KnowledgePage() {
             }}
           >
             <div
-              className="card"
+              className="card-landing"
               style={{
                 display: "flex",
                 flexDirection: "column",
@@ -303,19 +304,19 @@ export default function KnowledgePage() {
                     style={{
                       fontSize: "1rem",
                       fontWeight: 600,
-                      color: "var(--text-primary)",
+                      color: "var(--landing-text)",
                       marginBottom: "var(--spacing-xs)",
                     }}
                   >
-                    Root Nodes
+                    Context Nodes
                   </h2>
                   <p
                     style={{
                       fontSize: "0.75rem",
-                      color: "var(--text-muted)",
+                      color: "var(--landing-text-muted)",
                     }}
                   >
-                    Select a root to focus the graph
+                    Select a context node to see the related knowledge
                   </p>
                 </div>
                 <span
@@ -323,9 +324,9 @@ export default function KnowledgePage() {
                     fontSize: "0.75rem",
                     padding: "0.25rem 0.5rem",
                     borderRadius: "999px",
-                    backgroundColor: "var(--bg-primary)",
-                    color: "var(--text-muted)",
-                    border: "1px solid var(--border-color)",
+                    backgroundColor: "var(--landing-bg)",
+                    color: "var(--landing-text-muted)",
+                    border: "1px solid var(--landing-accent-glow)",
                   }}
                 >
                   {rootNodes.length}
@@ -344,34 +345,24 @@ export default function KnowledgePage() {
                 {rootNodes.length === 0 ? (
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "var(--spacing-xl)",
-                      color: "var(--text-muted)",
-                      border: "1px dashed var(--border-color)",
-                      borderRadius: "var(--radius-md)",
-                    }}
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "var(--spacing-xl)",
+                    color: "var(--landing-text-muted)",
+                    border: "1px dashed rgba(148, 163, 184, 0.2)",
+                    borderRadius: "var(--radius-md)",
+                  }}
                   >
-                    No root nodes available
+                    No context nodes available
                   </div>
                 ) : (
                   rootNodes.map((node) => {
                     const isSelected = selectedRootId === node.id;
                     const contextType = node.context_type || "text";
-                    const displayTitle =
-                      node.label || node.url || `Context ${shortContextId(node.id)}`;
                     const timestampLabel = node.timestamp
                       ? format(new Date(node.timestamp), "MMM d, yyyy HH:mm")
                       : "—";
-                    const urlLabel = (() => {
-                      if (!node.url) return "";
-                      try {
-                        return new URL(node.url).hostname;
-                      } catch {
-                        return node.url;
-                      }
-                    })();
 
                     return (
                       <div
@@ -388,11 +379,11 @@ export default function KnowledgePage() {
                         style={{
                           borderRadius: "var(--radius-md)",
                           border: `1px solid ${
-                            isSelected ? "var(--accent-blue)" : "var(--border-color)"
+                            isSelected ? "var(--landing-accent)" : "rgba(148, 163, 184, 0.2)"
                           }`,
                           backgroundColor: isSelected
-                            ? "rgba(59, 130, 246, 0.08)"
-                            : "var(--bg-primary)",
+                            ? "var(--landing-accent-glow)"
+                            : "var(--landing-bg)",
                           padding: "var(--spacing-md)",
                           display: "flex",
                           flexDirection: "column",
@@ -404,31 +395,10 @@ export default function KnowledgePage() {
                         <div
                           style={{
                             display: "flex",
-                            justifyContent: "space-between",
-                            gap: "var(--spacing-sm)",
+                            justifyContent: "flex-end",
                             alignItems: "flex-start",
                           }}
                         >
-                          <div style={{ flex: 1 }}>
-                            <p
-                              style={{
-                                fontSize: "0.875rem",
-                                fontWeight: 600,
-                                color: "var(--text-primary)",
-                                marginBottom: "var(--spacing-xs)",
-                              }}
-                            >
-                              {displayTitle}
-                            </p>
-                            <p
-                              style={{
-                                fontSize: "0.75rem",
-                                color: "var(--text-muted)",
-                              }}
-                            >
-                              {urlLabel || shortContextId(node.id)}
-                            </p>
-                          </div>
                           <span
                             style={{
                               fontSize: "0.7rem",
@@ -437,10 +407,10 @@ export default function KnowledgePage() {
                               textTransform: "capitalize",
                               backgroundColor:
                                 contextType === "text"
-                                  ? "rgba(59, 130, 246, 0.1)"
+                                  ? "var(--accent-blue-tint)"
                                   : contextType === "image"
-                                    ? "rgba(34, 197, 94, 0.1)"
-                                    : "rgba(249, 115, 22, 0.1)",
+                                    ? "var(--accent-green-tint)"
+                                    : "var(--accent-orange-tint)",
                               color:
                                 contextType === "text"
                                   ? "var(--accent-blue)"
@@ -457,8 +427,9 @@ export default function KnowledgePage() {
                           <p
                             style={{
                               fontSize: "0.75rem",
-                              color: "var(--text-secondary)",
+                              color: "var(--landing-text)",
                               lineHeight: 1.4,
+                              opacity: 0.9,
                             }}
                           >
                             {node.content_preview.length > 120
@@ -482,9 +453,9 @@ export default function KnowledgePage() {
                                   fontSize: "0.7rem",
                                   padding: "0.1rem 0.5rem",
                                   borderRadius: "999px",
-                                  backgroundColor: "var(--bg-card)",
-                                  color: "var(--text-muted)",
-                                  border: "1px solid var(--border-color)",
+                                  backgroundColor: "var(--landing-bg)",
+                                  color: "var(--landing-text-muted)",
+                                  border: "1px solid rgba(148, 163, 184, 0.2)",
                                 }}
                               >
                                 {tag}
@@ -499,7 +470,7 @@ export default function KnowledgePage() {
                             alignItems: "center",
                             justifyContent: "space-between",
                             fontSize: "0.7rem",
-                            color: "var(--text-muted)",
+                            color: "var(--landing-text-muted)",
                           }}
                         >
                           <span>{timestampLabel}</span>
@@ -550,7 +521,7 @@ export default function KnowledgePage() {
               <label
                 style={{
                   fontSize: "0.75rem",
-                  color: "var(--text-muted)",
+                  color: "var(--landing-text-muted)",
                   textTransform: "uppercase",
                   marginBottom: "var(--spacing-xs)",
                   display: "block",
@@ -560,9 +531,9 @@ export default function KnowledgePage() {
               </label>
               <p
                 style={{
-                  fontFamily: "monospace",
+                  fontFamily: "var(--font-mono)",
                   fontSize: "0.875rem",
-                  color: "var(--text-secondary)",
+                  color: "var(--landing-text)",
                   wordBreak: "break-all",
                 }}
               >
@@ -574,7 +545,7 @@ export default function KnowledgePage() {
                 <label
                   style={{
                     fontSize: "0.75rem",
-                    color: "var(--text-muted)",
+                    color: "var(--landing-text-muted)",
                     textTransform: "uppercase",
                     marginBottom: "var(--spacing-xs)",
                     display: "block",
@@ -587,7 +558,7 @@ export default function KnowledgePage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
-                    color: "var(--accent-blue)",
+                    color: "var(--landing-accent)",
                     wordBreak: "break-all",
                   }}
                 >
@@ -600,7 +571,7 @@ export default function KnowledgePage() {
                 <label
                   style={{
                     fontSize: "0.75rem",
-                    color: "var(--text-muted)",
+                    color: "var(--landing-text-muted)",
                     textTransform: "uppercase",
                     marginBottom: "var(--spacing-xs)",
                     display: "block",
@@ -608,7 +579,7 @@ export default function KnowledgePage() {
                 >
                   User Context
                 </label>
-                <p style={{ color: "var(--text-secondary)" }}>
+                <p style={{ color: "var(--landing-text)" }}>
                   {selectedContext.user_defined_context}
                 </p>
               </div>
@@ -618,7 +589,7 @@ export default function KnowledgePage() {
                 <label
                   style={{
                     fontSize: "0.75rem",
-                    color: "var(--text-muted)",
+                    color: "var(--landing-text-muted)",
                     textTransform: "uppercase",
                     marginBottom: "var(--spacing-xs)",
                     display: "block",
@@ -628,7 +599,7 @@ export default function KnowledgePage() {
                 </label>
                 <p
                   style={{
-                    color: "var(--text-secondary)",
+                    color: "var(--landing-text)",
                     whiteSpace: "pre-wrap",
                     maxHeight: "400px",
                     overflow: "auto",
@@ -644,7 +615,7 @@ export default function KnowledgePage() {
                   <label
                     style={{
                       fontSize: "0.75rem",
-                      color: "var(--text-muted)",
+                      color: "var(--landing-text-muted)",
                       textTransform: "uppercase",
                       marginBottom: "var(--spacing-xs)",
                       display: "block",
@@ -666,9 +637,9 @@ export default function KnowledgePage() {
                           fontSize: "0.75rem",
                           padding: "0.25rem 0.5rem",
                           borderRadius: "var(--radius-sm)",
-                          backgroundColor: "var(--bg-primary)",
-                          color: "var(--text-muted)",
-                          border: "1px solid var(--border-color)",
+                          backgroundColor: "var(--landing-bg)",
+                          color: "var(--landing-text-muted)",
+                          border: "1px solid rgba(148, 163, 184, 0.2)",
                         }}
                       >
                         {tag}

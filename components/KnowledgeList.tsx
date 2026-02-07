@@ -55,21 +55,11 @@ export default function KnowledgeList({
         <div
           key={context.context_id}
           className="card"
-          role="button"
-          tabIndex={0}
-          onClick={() => onViewDetails?.(context.context_id)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onViewDetails?.(context.context_id);
-            }
-          }}
           style={{
             display: "flex",
             flexDirection: "column",
             gap: "var(--spacing-sm)",
             position: "relative",
-            cursor: "pointer",
           }}
         >
           {/* Three-dot menu */}
@@ -79,7 +69,6 @@ export default function KnowledgeList({
               top: "var(--spacing-md)",
               right: "var(--spacing-md)",
             }}
-            onClick={(e) => e.stopPropagation()}
           >
             <button
               style={{
@@ -108,7 +97,7 @@ export default function KnowledgeList({
             </button>
           </div>
 
-          {/* Header – context ID as primary identifier */}
+          {/* Header */}
           <div
             style={{
               display: "flex",
@@ -118,20 +107,6 @@ export default function KnowledgeList({
             }}
           >
             <div style={{ flex: 1 }}>
-              <p
-                style={{
-                  fontSize: "0.875rem",
-                  fontWeight: 600,
-                  color: "var(--text-primary)",
-                  fontFamily: "monospace",
-                  marginBottom: "var(--spacing-xs)",
-                }}
-                title={context.context_id}
-              >
-                {context.context_id.length >= 8
-                  ? context.context_id.substring(0, 8) + "…"
-                  : context.context_id}
-              </p>
               {context.url && (
                 <div
                   style={{
@@ -177,10 +152,10 @@ export default function KnowledgeList({
                 borderRadius: "var(--radius-sm)",
                 backgroundColor:
                   context.context_type === "text"
-                    ? "rgba(59, 130, 246, 0.1)"
+                    ? "var(--accent-blue-tint)"
                     : context.context_type === "image"
-                      ? "rgba(34, 197, 94, 0.1)"
-                      : "rgba(249, 115, 22, 0.1)",
+                      ? "var(--accent-green-tint)"
+                      : "var(--accent-orange-tint)",
                 color:
                   context.context_type === "text"
                     ? "var(--accent-blue)"
@@ -262,14 +237,10 @@ export default function KnowledgeList({
                 display: "flex",
                 gap: "var(--spacing-sm)",
               }}
-              onClick={(e) => e.stopPropagation()}
             >
               {onViewDetails && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onViewDetails(context.context_id);
-                  }}
+                  onClick={() => onViewDetails(context.context_id)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -298,10 +269,7 @@ export default function KnowledgeList({
               )}
               {onDelete && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(context.context_id);
-                  }}
+                  onClick={() => onDelete(context.context_id)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -316,7 +284,7 @@ export default function KnowledgeList({
                     transition: "all var(--transition-base)",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+                    e.currentTarget.style.backgroundColor = "var(--status-error-tint)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = "transparent";

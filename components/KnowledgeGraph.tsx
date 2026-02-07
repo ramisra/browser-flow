@@ -57,7 +57,7 @@ export default function KnowledgeGraph({
           alignItems: "center",
           justifyContent: "center",
           height: "600px",
-          color: "var(--text-muted)",
+          color: "var(--landing-text-muted)",
         }}
       >
         No graph data available
@@ -65,16 +65,26 @@ export default function KnowledgeGraph({
     );
   }
 
+  const circleFill =
+    (type: string) =>
+    type === "text"
+      ? "var(--landing-accent)"
+      : type === "image"
+        ? "var(--accent-green)"
+        : "var(--accent-orange)";
+
   return (
     <div
       ref={treeContainerRef}
+      className="knowledge-graph-container"
       style={{
         width: "100%",
         height: "600px",
-        backgroundColor: "var(--bg-primary)",
-        borderRadius: "var(--radius-lg)",
-        border: "1px solid var(--border-color)",
+        backgroundColor: "var(--landing-bg-card)",
+        borderRadius: "1.25rem",
+        border: "1px solid rgba(148, 163, 184, 0.08)",
         overflow: "hidden",
+        backdropFilter: "blur(12px)",
       }}
     >
       <Tree
@@ -87,24 +97,19 @@ export default function KnowledgeGraph({
         renderCustomNodeElement={(rd3tProps: any) => {
           const { nodeDatum } = rd3tProps;
           const contextId = nodeDatum.attributes?.context_id;
+          const contextType = nodeDatum.attributes?.context_type || "text";
           const isHighlighted =
             contextId && highlightSet.size > 0 ? highlightSet.has(contextId) : true;
           const nodeOpacity = selectedRootId ? (isHighlighted ? 1 : 0.35) : 1;
           return (
-            <g>
+            <g style={{ fill: "none" }}>
               {contextId && (
                 <title>{`Context ID: ${contextId}\nClick to view raw context`}</title>
               )}
               <circle
                 r={15}
-                fill={
-                  nodeDatum.attributes?.context_type === "text"
-                    ? "var(--accent-blue)"
-                    : nodeDatum.attributes?.context_type === "image"
-                      ? "var(--accent-green)"
-                      : "var(--accent-orange)"
-                }
-                stroke={isHighlighted ? "var(--accent-blue)" : "var(--border-color)"}
+                fill={circleFill(contextType)}
+                stroke={isHighlighted ? "var(--landing-accent)" : "rgba(148, 163, 184, 0.3)"}
                 strokeWidth={isHighlighted ? 3 : 2}
                 onClick={() => onNodeClick?.(nodeDatum)}
                 style={{ cursor: "pointer", opacity: nodeOpacity }}
@@ -113,10 +118,10 @@ export default function KnowledgeGraph({
                 x={0}
                 y={-25}
                 textAnchor="middle"
-                fill="var(--text-primary)"
                 fontSize="12"
                 fontWeight={500}
                 opacity={nodeOpacity}
+                style={{ fill: "white" }}
               >
                 {nodeDatum.name?.substring(0, 30) || "Context"}
               </text>
@@ -130,9 +135,9 @@ export default function KnowledgeGraph({
                       x={0}
                       y={-10}
                       textAnchor="middle"
-                      fill="var(--text-muted)"
                       fontSize="10"
                       opacity={nodeOpacity}
+                      style={{ fill: "white" }}
                     >
                       {url.hostname}
                     </text>
@@ -146,7 +151,7 @@ export default function KnowledgeGraph({
         }}
         styles={{
           links: {
-            stroke: selectedRootId ? "rgba(59, 130, 246, 0.4)" : "var(--accent-blue)",
+            stroke: selectedRootId ? "var(--landing-accent-glow)" : "var(--landing-accent)",
             strokeWidth: 2,
             fill: "none",
           },
