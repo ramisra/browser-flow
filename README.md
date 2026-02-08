@@ -80,6 +80,7 @@ Then in **`chrome://extensions`**, click the **reload** icon on the Browser Flow
 | Popup is blank or errors | Open **`chrome://extensions`**, find Browser Flow, click “Inspect views: popup.html” and check the console for errors. |
 | Permission or install errors | Confirm `public/manifest.json` is valid and that all referenced files (`service-worker.js`, `popup.html`, `content-script.js`) exist in `public/`. |
 | **Extension still fails after update-service-worker-url** | The extension must call **this Next.js app** (this repo), not your FastAPI backend. If `https://browser-flow-backend.onrender.com` is your **FastAPI** service: (1) Deploy **this Next.js app** elsewhere (e.g. Vercel or another Render service). (2) Set `BROWSER_FLO_BACKEND_URL=https://browser-flow-backend.onrender.com` on that deployment. (3) Run `update-service-worker-url.js` with **that Next.js URL** (not the FastAPI URL), then reload the extension. This app includes CORS so the extension can call it. |
+| **502 or 503 when extension calls Vercel app** | The Next.js app on Vercel proxies to your FastAPI backend. You **must** set the env var **`BROWSER_FLO_BACKEND_URL`** in Vercel (Project → Settings → Environment Variables) to your FastAPI backend URL (e.g. `https://browser-flow-backend.onrender.com`). Without it, the app tries to call `http://localhost:8000` and fails. Redeploy after adding the variable. |
 | First request very slow (Render) | On Render free tier the service can spin down; the first request after idle may take 30–60 seconds. |
 
 ---

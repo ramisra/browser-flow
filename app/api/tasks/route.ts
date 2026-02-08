@@ -9,9 +9,25 @@ interface CreateTaskPayload {
 }
 
 // Base URL for your FastAPI agents backend.
-// In dev this is http://localhost:8000; you can override via env in production.
+// In dev this is http://localhost:8000; in production set BROWSER_FLO_BACKEND_URL (e.g. on Vercel).
 const FASTAPI_BASE =
   process.env.BROWSER_FLO_BACKEND_URL ?? "http://localhost:8000";
+
+const isLocalBackend =
+  !process.env.BROWSER_FLO_BACKEND_URL ||
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(FASTAPI_BASE);
+
+function backendUnreachableResponse(message: string) {
+  return NextResponse.json(
+    {
+      error: message,
+      hint: isLocalBackend
+        ? "In production, set BROWSER_FLO_BACKEND_URL to your FastAPI backend URL (e.g. on Vercel env vars)."
+        : undefined,
+    },
+    { status: 503 },
+  );
+}
 
 export async function POST(req: Request) {
   const body = (await req.json()) as CreateTaskPayload;
@@ -52,13 +68,20 @@ export async function POST(req: Request) {
       body: JSON.stringify(backendPayload),
     });
 
-    const data = await resp.json();
+    const data = await resp.json().catch(() => ({ error: "Invalid JSON from backend" }));
     return NextResponse.json(data, { status: resp.status });
   } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    const isNetwork =
+      err?.code === "ECONNREFUSED" ||
+      err?.code === "ENOTFOUND" ||
+      err?.code === "ETIMEDOUT" ||
+      err?.message?.includes("fetch failed");
     console.error("[Browser Flow] Error calling FastAPI backend", error);
-    return NextResponse.json(
-      { error: "Failed to reach FastAPI backend" },
-      { status: 502 },
+    return backendUnreachableResponse(
+      isNetwork && isLocalBackend
+        ? "FastAPI backend not reachable. Set BROWSER_FLO_BACKEND_URL to your backend URL (e.g. https://your-backend.onrender.com)."
+        : "Failed to reach FastAPI backend",
     );
   }
 }
@@ -94,13 +117,20 @@ export async function GET(req: Request) {
         );
       }
 
-      const data = await resp.json();
+      const data = await resp.json().catch(() => ({ error: "Invalid JSON from backend" }));
       return NextResponse.json(data, { status: resp.status });
     } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      const isNetwork =
+        err?.code === "ECONNREFUSED" ||
+        err?.code === "ENOTFOUND" ||
+        err?.code === "ETIMEDOUT" ||
+        err?.message?.includes("fetch failed");
       console.error("[Browser Flow] Error calling FastAPI backend", error);
-      return NextResponse.json(
-        { error: "Failed to reach FastAPI backend" },
-        { status: 502 },
+      return backendUnreachableResponse(
+        isNetwork && isLocalBackend
+          ? "FastAPI backend not reachable. Set BROWSER_FLO_BACKEND_URL to your backend URL (e.g. https://your-backend.onrender.com)."
+          : "Failed to reach FastAPI backend",
       );
     }
   }
@@ -146,13 +176,20 @@ export async function GET(req: Request) {
       );
     }
 
-    const data = await resp.json();
+    const data = await resp.json().catch(() => ({ error: "Invalid JSON from backend" }));
     return NextResponse.json(data, { status: resp.status });
   } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    const isNetwork =
+      err?.code === "ECONNREFUSED" ||
+      err?.code === "ENOTFOUND" ||
+      err?.code === "ETIMEDOUT" ||
+      err?.message?.includes("fetch failed");
     console.error("[Browser Flow] Error calling FastAPI backend", error);
-    return NextResponse.json(
-      { error: "Failed to reach FastAPI backend" },
-      { status: 502 },
+    return backendUnreachableResponse(
+      isNetwork && isLocalBackend
+        ? "FastAPI backend not reachable. Set BROWSER_FLO_BACKEND_URL to your backend URL (e.g. https://your-backend.onrender.com)."
+        : "Failed to reach FastAPI backend",
     );
   }
 }
