@@ -3,13 +3,24 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { User, Calendar, CreditCard, RefreshCw, Copy, Check } from "lucide-react";
-import { getUserGuestId, getUserGuestIdHeader, regenerateUserGuestId, GUEST_ID_SYNC_EVENT_NAME } from "@/lib/user-guest-id";
+import { User, Calendar, CreditCard, RefreshCw, Copy, Check, Pencil, X } from "lucide-react";
+import {
+  getUserGuestId,
+  getUserGuestIdHeader,
+  regenerateUserGuestId,
+  setUserGuestId as setStoredGuestId,
+  syncGuestIdToExtension,
+  GUEST_ID_SYNC_EVENT_NAME,
+  isValidUUID,
+} from "@/lib/user-guest-id";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function ProfilePage() {
   const [copied, setCopied] = useState(false);
   const [userGuestId, setUserGuestId] = useState(getUserGuestId());
+  const [isEditingGuestId, setIsEditingGuestId] = useState(false);
+  const [editGuestIdValue, setEditGuestIdValue] = useState(userGuestId);
+  const [guestIdError, setGuestIdError] = useState<string | null>(null);
 
   useEffect(() => {
     const onSynced = () => setUserGuestId(getUserGuestId());
@@ -43,8 +54,42 @@ export default function ProfilePage() {
     if (confirm("Are you sure you want to generate a new User Guest ID? This will create a new identity.")) {
       const newId = regenerateUserGuestId();
       setUserGuestId(newId);
+      setEditGuestIdValue(newId);
+      setIsEditingGuestId(false);
+      setGuestIdError(null);
       refetch();
     }
+  };
+
+  const handleStartEditGuestId = () => {
+    setEditGuestIdValue(userGuestId);
+    setGuestIdError(null);
+    setIsEditingGuestId(true);
+  };
+
+  const handleCancelEditGuestId = () => {
+    setEditGuestIdValue(userGuestId);
+    setGuestIdError(null);
+    setIsEditingGuestId(false);
+  };
+
+  const handleSaveGuestId = () => {
+    const trimmed = editGuestIdValue.trim();
+    if (!trimmed) {
+      setGuestIdError("Guest ID cannot be empty.");
+      return;
+    }
+    if (!isValidUUID(trimmed)) {
+      setGuestIdError("Please enter a valid UUID (e.g. xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx).");
+      return;
+    }
+    setStoredGuestId(trimmed);
+    syncGuestIdToExtension(trimmed);
+    setUserGuestId(trimmed);
+    setEditGuestIdValue(trimmed);
+    setGuestIdError(null);
+    setIsEditingGuestId(false);
+    refetch();
   };
 
   return (
@@ -207,66 +252,167 @@ export default function ProfilePage() {
                 >
                   User Guest ID
                 </label>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "var(--spacing-sm)",
-                    alignItems: "center",
-                  }}
-                >
-                  <code
-                    style={{
-                      flex: 1,
-                      padding: "var(--spacing-sm) var(--spacing-md)",
-                      borderRadius: "var(--radius-md)",
-                      backgroundColor: "var(--landing-bg)",
-                      color: "var(--landing-text)",
-                      fontSize: "0.75rem",
-                      border: "1px solid rgba(148, 163, 184, 0.2)",
-                      fontFamily: "var(--font-mono)",
-                    }}
-                  >
-                    {userGuestId}
-                  </code>
-                  <button
-                    onClick={handleCopyGuestId}
+                {isEditingGuestId ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-sm)" }}>
+                    <input
+                      type="text"
+                      value={editGuestIdValue}
+                      onChange={(e) => {
+                        setEditGuestIdValue(e.target.value);
+                        setGuestIdError(null);
+                      }}
+                      placeholder="xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
+                      style={{
+                        flex: 1,
+                        padding: "var(--spacing-sm) var(--spacing-md)",
+                        borderRadius: "var(--radius-md)",
+                        backgroundColor: "var(--landing-bg)",
+                        color: "var(--landing-text)",
+                        fontSize: "0.75rem",
+                        border: guestIdError
+                          ? "1px solid var(--status-error)"
+                          : "1px solid rgba(148, 163, 184, 0.2)",
+                        fontFamily: "var(--font-mono)",
+                        outline: "none",
+                      }}
+                      aria-invalid={!!guestIdError}
+                      aria-describedby={guestIdError ? "guest-id-error" : undefined}
+                    />
+                    {guestIdError && (
+                      <p
+                        id="guest-id-error"
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "var(--status-error)",
+                          margin: 0,
+                        }}
+                      >
+                        {guestIdError}
+                      </p>
+                    )}
+                    <div style={{ display: "flex", gap: "var(--spacing-sm)", alignItems: "center" }}>
+                      <button
+                        onClick={handleSaveGuestId}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "var(--spacing-xs)",
+                          padding: "var(--spacing-sm) var(--spacing-md)",
+                          borderRadius: "var(--radius-md)",
+                          border: "none",
+                          backgroundColor: "var(--landing-accent)",
+                          color: "#0b0b14",
+                          cursor: "pointer",
+                          fontSize: "0.875rem",
+                          fontWeight: 500,
+                          transition: "all var(--transition-base)",
+                        }}
+                      >
+                        <Check size={16} />
+                        Save
+                      </button>
+                      <button
+                        onClick={handleCancelEditGuestId}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "var(--spacing-xs)",
+                          padding: "var(--spacing-sm) var(--spacing-md)",
+                          borderRadius: "var(--radius-md)",
+                          border: "1px solid var(--border-color)",
+                          backgroundColor: "transparent",
+                          color: "var(--landing-text)",
+                          cursor: "pointer",
+                          fontSize: "0.875rem",
+                          transition: "all var(--transition-base)",
+                        }}
+                      >
+                        <X size={16} />
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
                     style={{
                       display: "flex",
+                      gap: "var(--spacing-sm)",
                       alignItems: "center",
-                      justifyContent: "center",
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "var(--radius-md)",
-                      border: "1px solid var(--border-color)",
-                      backgroundColor: "transparent",
-                      color: copied ? "var(--status-success)" : "var(--text-muted)",
-                      cursor: "pointer",
-                      transition: "all var(--transition-base)",
                     }}
-                    title="Copy to clipboard"
                   >
-                    {copied ? <Check size={16} /> : <Copy size={16} />}
-                  </button>
-                  <button
-                    onClick={handleRegenerateGuestId}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "var(--radius-md)",
-                      border: "1px solid var(--border-color)",
-                      backgroundColor: "transparent",
-                      color: "var(--text-muted)",
-                      cursor: "pointer",
-                      transition: "all var(--transition-base)",
-                    }}
-                    title="Regenerate ID"
-                  >
-                    <RefreshCw size={16} />
-                  </button>
-                </div>
+                    <code
+                      style={{
+                        flex: 1,
+                        padding: "var(--spacing-sm) var(--spacing-md)",
+                        borderRadius: "var(--radius-md)",
+                        backgroundColor: "var(--landing-bg)",
+                        color: "var(--landing-text)",
+                        fontSize: "0.75rem",
+                        border: "1px solid rgba(148, 163, 184, 0.2)",
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      {userGuestId}
+                    </code>
+                    <button
+                      onClick={handleCopyGuestId}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "var(--radius-md)",
+                        border: "1px solid var(--border-color)",
+                        backgroundColor: "transparent",
+                        color: copied ? "var(--status-success)" : "var(--text-muted)",
+                        cursor: "pointer",
+                        transition: "all var(--transition-base)",
+                      }}
+                      title="Copy to clipboard"
+                    >
+                      {copied ? <Check size={16} /> : <Copy size={16} />}
+                    </button>
+                    <button
+                      onClick={handleRegenerateGuestId}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "var(--radius-md)",
+                        border: "1px solid var(--border-color)",
+                        backgroundColor: "transparent",
+                        color: "var(--text-muted)",
+                        cursor: "pointer",
+                        transition: "all var(--transition-base)",
+                      }}
+                      title="Regenerate ID"
+                    >
+                      <RefreshCw size={16} />
+                    </button>
+                    <button
+                      onClick={handleStartEditGuestId}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "var(--radius-md)",
+                        border: "1px solid var(--border-color)",
+                        backgroundColor: "transparent",
+                        color: "var(--text-muted)",
+                        cursor: "pointer",
+                        transition: "all var(--transition-base)",
+                      }}
+                      title="Update guest ID"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {profileData?.accountCreated && (

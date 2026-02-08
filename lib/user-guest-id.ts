@@ -10,6 +10,17 @@ export const USER_GUEST_ID_KEY = "browser-flow-user-guest-id";
 const GUEST_ID_SYNC_TIMEOUT_MS = 500;
 const GUEST_ID_SYNC_EVENT = "browser-flow-guest-id-synced";
 
+/** UUID v4 regex for validation */
+const UUID_V4_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * Validate that a string is a valid UUID v4 format.
+ */
+export function isValidUUID(value: string): boolean {
+  return typeof value === "string" && UUID_V4_REGEX.test(value.trim());
+}
+
 /**
  * Generate a new UUID v4 (exported for server-side fallback when header is missing)
  */
